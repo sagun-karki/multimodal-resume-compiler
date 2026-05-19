@@ -1,5 +1,7 @@
 import re
 import os
+import json
+import jinja2
 import google.generativeai as genai
 from utils.config import TEXT_MODEL
 from utils.token_tracker import TokenTracker
@@ -27,6 +29,13 @@ def extract_bullets(latex_content: str) -> list[str]:
                 bullets.append(bullet_text)
     return bullets
 
+def render_resume_template(resume_json: dict) -> str:
+    """Renders the LaTeX body using Jinja2."""
+    template_dir = os.path.join(os.path.dirname(__file__), "..", "templates")
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
+    template = env.get_template("body.tex.j2")
+    return template.render(**resume_json)
+
 def optimize_single_bullet(bullet: str, direction: str, gap_report: dict, tracker: TokenTracker) -> str:
     """
     Surgically re-writes a single bullet point to be shorter or longer.
@@ -42,10 +51,9 @@ def optimize_single_bullet(bullet: str, direction: str, gap_report: dict, tracke
         f"1. DIRECTION: You must {direction} the bullet point.\n"
         "   - If 'shorten': rewrite the bullet point to be more concise (ideally under 85 characters, and strictly under 90 characters) so that it fits on a single line, while keeping the core achievements and ATS keywords.\n"
         "   - If 'lengthen': expand and enrich the bullet point with more detail (making it longer) to occupy more space naturally.\n"
-        "2. Keep the formatting standard: Do NOT include \\validatedbullet{...} or any LaTeX wrapper command. Only return the raw text content.\n"
+        "2. Keep the formatting standard: Only return the raw text content.\n"
         "3. Subtlety constraint: Make as little edit as possible. Ensure the output remains as close to the original as possible. Do not hyper-tailor or embellish facts to fit the ATS keywords.\n"
-        "4. Do NOT bold any part of the sentence inside the bullet point (never use \\textbf or other bold formatting inside the bullet text).\n"
-        "5. Do NOT wrap your output in markdown, quotes, or any formatting. Return ONLY the rewritten text of the bullet point."
+        "4. Do NOT wrap your output in markdown, quotes, or any formatting. Return ONLY the rewritten text of the bullet point."
     )
 
     user_message = (
@@ -75,33 +83,51 @@ def optimize_single_bullet(bullet: str, direction: str, gap_report: dict, tracke
 
     return new_bullet
 
+def _replace_bullet_in_json(resume_json: dict, old_bullet: str, new_bullet: str):
+    """Mutates the resume_json in-place by replacing old_bullet with new_bullet."""
+    if "experience" in resume_json:
+        for job in resume_json["experience"]:
+            if "bullets" in job:
+                for i, bullet in enumerate(job["bullets"]):
+                    if bullet.strip() == old_bullet.strip():
+                        job["bullets"][i] = new_bullet
+    if "projects" in resume_json:
+        for project in resume_json["projects"]:
+            if "bullets" in project:
+                for i, bullet in enumerate(project["bullets"]):
+                    if bullet.strip() == old_bullet.strip():
+                        project["bullets"][i] = new_bullet
+    if "honors" in resume_json:
+        for i, honor in enumerate(resume_json["honors"]):
+            if honor.strip() == old_bullet.strip():
+                resume_json["honors"][i] = new_bullet
+
 def run_stage1(
     profile_path: str,
     jd_path: str,
     gap_report: dict,
     critique: str,
     tracker: TokenTracker,
-    previous_latex: str = None,
+    previous_json: dict = None,
     failing_bullets: list[str] = None,
     direction: str = "shorten"
-) -> str:
+) -> tuple[str, dict]:
     """
     Stage 1: Semantic Text Generator (with Surgical Bullet Optimization Support)
-    If previous_latex and failing_bullets are provided, surgically rewrites only those bullets.
-    Otherwise, generates the full resume dynamic body from scratch.
+    If previous_json and failing_bullets are provided, surgically rewrites only those bullets.
+    Otherwise, generates the full resume dynamic body from scratch as JSON, and renders it to LaTeX.
+    
+    Returns: (latex_content, resume_json)
     """
     # CASE A: Surgical Optimization
-    if previous_latex and failing_bullets:
-        updated_latex = previous_latex
+    if previous_json and failing_bullets:
+        updated_json = previous_json
         for old_bullet in failing_bullets:
-            # Re-write the single bullet
             new_bullet = optimize_single_bullet(old_bullet, direction, gap_report, tracker)
-            # Find and replace in-place
-            target_str = f"\\validatedbullet{{{old_bullet}}}"
-            replacement_str = f"\\validatedbullet{{{new_bullet}}}"
-            if target_str in updated_latex:
-                updated_latex = updated_latex.replace(target_str, replacement_str)
-        return updated_latex
+            _replace_bullet_in_json(updated_json, old_bullet, new_bullet)
+        
+        latex_content = render_resume_template(updated_json)
+        return latex_content, updated_json
 
     # CASE B: Full Initial Generation
     api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
@@ -115,42 +141,48 @@ def run_stage1(
         jd_content = f.read()
 
     system_prompt = (
-        "You are an expert resume optimizer and LaTeX typesetter.\n"
+        "You are an expert resume optimizer and data structured output generator.\n"
         "Your task is to take the user's master profile, the target job description, and the ATS gap analysis report, "
-        "and generate a fully tailored set of resume content blocks in standard LaTeX.\n\n"
+        "and generate a fully tailored set of resume content blocks in JSON format.\n\n"
         "CORE MANDATES:\n"
-        "1. Output ONLY the raw body LaTeX code starting from \\section*{SKILLS} to the end of the document. "
-        "Do NOT write any header block, name, contact links, documentclass, packages, or \\begin{document}/\\end{document}.\n"
-        "2. Do NOT wrap your output in markdown formatting (no ```latex wrappers). Only output raw LaTeX text.\n"
-        "3. Incorporate target keywords from the gap analysis report to maximize ATS alignment.\n"
-        "4. Enforce factuality: You are strictly FORBIDDEN from inventing metrics, company names, job titles, degrees, "
+        "1. Output ONLY valid JSON. Do not wrap in markdown (no ```json). The schema must match the following structure:\n"
+        "   {\n"
+        "     \"skills\": { \"Category1\": [\"Skill1\", \"Skill2\"], \"Category2\": [...] },\n"
+        "     \"experience\": [\n"
+        "       {\n"
+        "         \"title\": \"Job Title\",\n"
+        "         \"company\": \"Company Name\",\n"
+        "         \"location\": \"City, ST\",\n"
+        "         \"date\": \"Start - End\",\n"
+        "         \"bullets\": [\"Bullet 1\", \"Bullet 2\"]\n"
+        "       }\n"
+        "     ],\n"
+        "     \"projects\": [\n"
+        "       {\n"
+        "         \"name\": \"Project Name\",\n"
+        "         \"technologies\": \"Tech1, Tech2\",\n"
+        "         \"date\": \"Date\",\n"
+        "         \"bullets\": [\"Bullet 1\"]\n"
+        "       }\n"
+        "     ],\n"
+        "     \"education\": [\n"
+        "       {\n"
+        "         \"school\": \"University Name\",\n"
+        "         \"degree\": \"Degree details\",\n"
+        "         \"location\": \"City, ST\",\n"
+        "         \"date\": \"Graduation Date\"\n"
+        "       }\n"
+        "     ],\n"
+        "     \"honors\": [\"Honor 1\", \"Honor 2\"]\n"
+        "   }\n"
+        "2. Incorporate target keywords from the gap analysis report to maximize ATS alignment.\n"
+        "3. Enforce factuality: You are strictly FORBIDDEN from inventing metrics, company names, job titles, degrees, "
         "or projects. You must only use experiences and achievements verified in the master user profile.\n"
-        "5. Formatting constraint: Use the \\validatedbullet{...} command for all bullet items inside experience, "
-        "projects, and honors listings. Use \\validatedskill{...} for skills listing values instead of \\item.\n"
-        "6. Spacing variables: You are FORBIDDEN from modifying margins or adding LaTeX spacing hacks like \\vspace or \\vfill. "
-        "All space optimization must be solved via text length scaling.\n"
-        "7. Subtlety constraint: Make as little edit as possible. Make the output as close as possible to the original user profile. Do not hyper-tailor or completely rewrite the resume just for the job description.\n"
-        "8. Layout and Structural constraints:\n"
-        "   - Do NOT use \\subsection or \\subsection* anywhere in the document.\n"
-        "   - Do NOT bold any individual words or phrases inside the bullet points. Every bullet point text must be plain text without any \\textbf{...} wrapping inside the bullet content.\n"
-        "   - The SKILLS section must use: \\begin{itemize}[leftmargin=0.7em, label={}, itemsep=0pt, parsep=0pt, topsep=0pt]\n"
-        "   - Each skill category line in the SKILLS section MUST use \\validatedskill{<Category>: <Skills List>} instead of \\item. It MUST strictly fit on a single line. Do not let any skill category wrap to a second line. If the list of skills is too long, strictly remove the least relevant or least likely skills to force it to fit on one line.\n"
-        "   - EXPERIENCE section entries must be formatted exactly as:\n"
-        "     \\textbf{<Job Title>} \\hfill <Date Range> \\\\\n"
-        "     \\textit{<Company/Institution Name>} \\hfill \\textit{<Location>}\n"
-        "     \\begin{itemize}\n"
-        "       \\validatedbullet{...}\n"
-        "     \\end{itemize}\n"
-        "   - PROJECTS section entries must be formatted exactly as:\n"
-        "     \\textbf{<Project Name> | <Technologies>} \\hfill <Date Range>\n"
-        "     \\begin{itemize}\n"
-        "       \\validatedbullet{...}\n"
-        "     \\end{itemize}\n"
-        "   - EDUCATION section must be formatted exactly as:\n"
-        "     \\textbf{University of Nebraska-Lincoln} \\hfill Graduated May 2026 \\\\\n"
-        "     B.S. Computer Science and Data Science; Minor in Mathematics \\hfill \\textit{Lincoln, NE}\n"
-        "     (Do NOT wrap the education degree information in a bullet list)\n"
-        "   - HONORS AND ACTIVITIES section must use \\begin{itemize} with \\validatedbullet{...}\n\n"
+        "4. Subtlety constraint: Make as little edit as possible. Make the output as close as possible to the original user profile. Do not hyper-tailor or completely rewrite the resume just for the job description.\n"
+        "5. Constraints on Bullets:\n"
+        "   - Do NOT bold any individual words or phrases inside the bullet points. Every bullet point text must be plain text without any formatting wrappers.\n"
+        "6. Skill Category Constraints:\n"
+        "   - Keep the list of skills concise so they can fit on a single line when rendered. If a list of skills is too long, strictly remove the least relevant or least likely skills.\n\n"
         "LAYOUT FEEDBACK HANDLING:\n"
         "If the layout feedback is OVERFLOW, you must make bullet descriptions more concise, shorten phrases, or remove "
         "lower-priority items while keeping core ATS keywords.\n"
@@ -173,10 +205,30 @@ def run_stage1(
 
     response = model.generate_content(
         user_message,
-        generation_config={"temperature": 0.1}
+        generation_config={
+            "temperature": 0.1,
+            "response_mime_type": "application/json"
+        }
     )
 
-    latex_content = response.text.strip()
+    json_str = response.text.strip()
+    
+    # Remove markdown code blocks if any (just in case the model ignores instructions)
+    if json_str.startswith("```json"):
+        json_str = json_str[7:]
+    if json_str.startswith("```"):
+        json_str = json_str[3:]
+    if json_str.endswith("```"):
+        json_str = json_str[:-3]
+        
+    try:
+        resume_json = json.loads(json_str)
+    except json.JSONDecodeError as e:
+        # Fallback if json is corrupted
+        raise RuntimeError(f"Failed to decode LLM response as JSON: {e}\nResponse: {json_str}")
+
+    # Render template
+    latex_content = render_resume_template(resume_json)
 
     # Track tokens
     in_tokens = 0
@@ -186,4 +238,4 @@ def run_stage1(
         out_tokens = response.usage_metadata.candidates_token_count
     tracker.track("text", in_tokens, out_tokens)
 
-    return latex_content
+    return latex_content, resume_json

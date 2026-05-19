@@ -80,6 +80,7 @@ def run_optimization_pipeline(
     png_path = os.path.join(output_dir, "resume.png")
     
     latex_content = None
+    resume_json = None
     failing_bullets_to_optimize = None
     direction = "shorten"
 
@@ -97,13 +98,13 @@ def run_optimization_pipeline(
         # Stage 1: Text Generation
         yield {"status": "info", "message": f"Stage 1: Generating tailored LaTeX content (Iteration {iteration})...", "stage": 1}
         try:
-            latex_content = run_stage1(
+            latex_content, resume_json = run_stage1(
                 profile_path,
                 jd_path,
                 gap_report,
                 critique,
                 tracker,
-                previous_latex=latex_content if iteration > 1 else None,
+                previous_json=resume_json if iteration > 1 else None,
                 failing_bullets=failing_bullets_to_optimize,
                 direction=direction
             )
