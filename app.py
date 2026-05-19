@@ -28,6 +28,25 @@ os.makedirs(CONTENT_DIR, exist_ok=True)
 os.makedirs(RESOURCES_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+# Ensure initial PDF and PNG are generated if missing
+pdf_file = os.path.join(OUTPUT_DIR, "resume.pdf")
+png_file = os.path.join(OUTPUT_DIR, "resume.png")
+if not os.path.exists(pdf_file) or not os.path.exists(png_file):
+    print("[app.py] Initial resume PDF or PNG not found. Compiling default version...")
+    try:
+        from stages.stage3_latex_compiler import run_stage3
+        from stages.stage4_pymupdf_router import run_stage4
+        # Compile resume
+        success, err, _ = run_stage3(MAIN_TEX_PATH, OUTPUT_DIR)
+        if success:
+            # Rasterize to PNG
+            run_stage4(pdf_file, png_file)
+            print("[app.py] Initial compilation successful.")
+        else:
+            print(f"[app.py] Initial compilation failed: {err}")
+    except Exception as e:
+        print(f"[app.py] Error during initial compilation: {str(e)}")
+
 @app.route("/")
 def index():
     """

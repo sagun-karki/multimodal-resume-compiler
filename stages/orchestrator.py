@@ -218,10 +218,11 @@ def run_optimization_pipeline(
         state.add_warning(f"Failed to clean resources/generated_data.tex: {str(e)}")
 
     # Check if we exited loop due to max iterations
-    if state.iteration >= 5 and critique and not critique.startswith("STATUS: ACCEPTED"):
+    from utils.config import MAX_ITERATIONS
+    if state.iteration >= MAX_ITERATIONS and critique and not critique.startswith("STATUS: ACCEPTED"):
         yield {
             "status": "warning",
-            "message": "Self-healing pipeline reached the maximum of 5 iterations without full visual acceptance. Returning best-effort output.",
+            "message": f"Self-healing pipeline reached the maximum of {MAX_ITERATIONS} iterations without full visual acceptance. Returning best-effort output.",
             "stage": 5
         }
     

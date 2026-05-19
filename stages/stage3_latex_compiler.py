@@ -13,6 +13,22 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
     # Read main_tex_path and dynamically inject the \validatedbullet macro definition
     with open(main_tex_path, "r", encoding="utf-8") as f:
         main_content = f.read()
+
+    # Inline any \input{...} statements by copying the referenced file's contents inline
+    import re
+    def replace_input_match(match):
+        rel_path = match.group(1).strip()
+        base_dir = os.path.dirname(main_tex_path)
+        # Try relative to workspace root (parent of resources/) or directly
+        abs_path = os.path.abspath(os.path.join(base_dir, "..", rel_path))
+        if not os.path.exists(abs_path):
+            abs_path = os.path.abspath(os.path.join(base_dir, rel_path))
+        if os.path.exists(abs_path):
+            with open(abs_path, "r", encoding="utf-8") as f_in:
+                return f_in.read()
+        return match.group(0)
+
+    main_content = re.sub(r'\\input\{([^}]+)\}', replace_input_match, main_content)
         
     macro_definition = """
 % Custom wrapping helper to measure text width and output warning/orphan tags to the compile log
