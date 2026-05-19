@@ -168,6 +168,13 @@ def run_optimization_pipeline(
             yield {"status": "error", "message": f"Stage 5 Vision API call failed: {str(e)}", "stage": 5}
             return
 
+    # Clean up resources/generated_data.tex in-place to remove any \validatedbullet commands for clean source access
+    try:
+        from utils.latex_cleaner import clean_generated_file_in_place
+        clean_generated_file_in_place(generated_tex_path)
+    except Exception as e:
+        state.add_warning(f"Failed to clean resources/generated_data.tex: {str(e)}")
+
     # Check if we exited loop due to max iterations
     if state.iteration >= 5 and critique and not critique.startswith("STATUS: ACCEPTED"):
         yield {

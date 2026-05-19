@@ -1,6 +1,39 @@
 import os
 import re
 
+def clean_generated_tex(content: str) -> str:
+    # Replace all \validatedbullet{...} with \item ...
+    result = []
+    idx = 0
+    target = r'\validatedbullet{'
+    while idx < len(content):
+        next_pos = content.find(target, idx)
+        if next_pos == -1:
+            result.append(content[idx:])
+            break
+        
+        result.append(content[idx:next_pos])
+        
+        start = next_pos + len(target)
+        brace_count = 1
+        i = start
+        while i < len(content) and brace_count > 0:
+            if content[i] == '{':
+                brace_count += 1
+            elif content[i] == '}':
+                brace_count -= 1
+            i += 1
+            
+        if brace_count == 0:
+            bullet_text = content[start:i-1]
+            result.append(f'\\item {bullet_text}')
+            idx = i
+        else:
+            result.append(content[next_pos:start])
+            idx = start
+            
+    return "".join(result)
+
 def clean_latex(main_content: str, gen_content: str) -> str:
     # 1. Merge gen_content into main_content replacing the \input statement
     merged = re.sub(r'\\input\{.*?generated_data\.tex\}', lambda m: gen_content, main_content)
@@ -22,36 +55,7 @@ def clean_latex(main_content: str, gen_content: str) -> str:
     merged = re.sub(r'\n{3,}', '\n\n', merged)
 
     # 4. Replace all \validatedbullet{...} with \item ...
-    result = []
-    idx = 0
-    target = r'\validatedbullet{'
-    while idx < len(merged):
-        next_pos = merged.find(target, idx)
-        if next_pos == -1:
-            result.append(merged[idx:])
-            break
-        
-        result.append(merged[idx:next_pos])
-        
-        start = next_pos + len(target)
-        brace_count = 1
-        i = start
-        while i < len(merged) and brace_count > 0:
-            if merged[i] == '{':
-                brace_count += 1
-            elif merged[i] == '}':
-                brace_count -= 1
-            i += 1
-            
-        if brace_count == 0:
-            bullet_text = merged[start:i-1]
-            result.append(f'\\item {bullet_text}')
-            idx = i
-        else:
-            result.append(merged[next_pos:start])
-            idx = start
-            
-    return "".join(result)
+    return clean_generated_tex(merged)
 
 def clean_and_write(main_path: str, gen_path: str, output_path: str):
     with open(main_path, 'r', encoding='utf-8') as f:
@@ -63,6 +67,13 @@ def clean_and_write(main_path: str, gen_path: str, output_path: str):
     
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(cleaned)
+
+def clean_generated_file_in_place(file_path: str):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    cleaned = clean_generated_tex(content)
+    with open(file_path, 'w', encoding='utf-8') as f:
         f.write(cleaned)
 
 if __name__ == '__main__':
