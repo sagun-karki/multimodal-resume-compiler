@@ -64,11 +64,22 @@ def save_inputs():
     except Exception as e:
         return jsonify({"status": "error", "message": f"Failed to save content: {str(e)}"}), 500
 
+PIPELINE_CANCELLED = False
+
+@app.route("/api/cancel", methods=["POST"])
+def cancel_pipeline():
+    global PIPELINE_CANCELLED
+    PIPELINE_CANCELLED = True
+    return jsonify({"status": "success", "message": "Cancellation request received."})
+
 @app.route("/stream")
 def compile_stream():
     """
     Server-Sent Events endpoint to stream resume compilation logs in real time.
     """
+    global PIPELINE_CANCELLED
+    PIPELINE_CANCELLED = False
+
     # Verify Gemini API key is set
     if not os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
         def error_stream():
@@ -87,7 +98,8 @@ def compile_stream():
             main_tex_path=MAIN_TEX_PATH,
             generated_tex_path=GENERATED_TEX_PATH,
             output_dir=OUTPUT_DIR,
-            tracker=tracker
+            tracker=tracker,
+            is_cancelled=lambda: PIPELINE_CANCELLED
         )
         for update in generator:
             yield f"data: {json.dumps(update)}\n\n"

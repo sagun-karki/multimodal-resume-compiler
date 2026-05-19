@@ -423,10 +423,14 @@
                     </div>
                 </div>
 
-                <div class="control-panel">
-                    <button class="btn btn-primary" id="compile-btn" onclick="startOptimization()">
+                <div class="control-panel" style="display: flex; gap: 8px;">
+                    <button class="btn btn-primary" id="compile-btn" onclick="startOptimization()" style="flex: 1;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                         Compile & Optimize
+                    </button>
+                    <button class="btn" id="stop-btn" onclick="stopOptimization()" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; flex: 0 0 auto;" title="Stop optimization">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+                        Stop
                     </button>
                 </div>
             </div>
@@ -521,8 +525,30 @@
             }
         }
 
+        function endOptimization() {
+            const compileBtn = document.getElementById('compile-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const pulse = document.getElementById('canvas-pulse');
+            compileBtn.disabled = false;
+            stopBtn.style.display = 'none';
+            stopBtn.disabled = false;
+            pulse.classList.remove('running');
+        }
+
+        async function stopOptimization() {
+            const stopBtn = document.getElementById('stop-btn');
+            stopBtn.disabled = true;
+            addLog("Sending cancellation request to compile pipeline...", "warning");
+            try {
+                await fetch('/api/cancel', { method: 'POST' });
+            } catch (err) {
+                console.error("Failed to call cancel API", err);
+            }
+        }
+
         async function startOptimization() {
             const compileBtn = document.getElementById('compile-btn');
+            const stopBtn = document.getElementById('stop-btn');
             const pulse = document.getElementById('canvas-pulse');
             
             // Save local editor contents to disk first
@@ -530,6 +556,8 @@
             const jd = document.getElementById('jd-editor').value;
             
             compileBtn.disabled = true;
+            stopBtn.style.display = 'inline-flex';
+            stopBtn.disabled = false;
             pulse.classList.add('running');
             addLog("Saving user profile & target job description to workspace...", "info");
 
@@ -542,14 +570,12 @@
                 const saveResult = await saveRes.json();
                 if (saveResult.status !== 'success') {
                     addLog(`Error saving content: ${saveResult.message}`, "error");
-                    compileBtn.disabled = false;
-                    pulse.classList.remove('running');
+                    endOptimization();
                     return;
                 }
             } catch (err) {
                 addLog(`Failed to communicate with save API: ${err}`, "error");
-                compileBtn.disabled = false;
-                pulse.classList.remove('running');
+                endOptimization();
                 return;
             }
 
@@ -615,8 +641,7 @@
                 } else if (data.status === 'error') {
                     addLog(data.message, 'error');
                     eventSource.close();
-                    compileBtn.disabled = false;
-                    pulse.classList.remove('running');
+                    endOptimization();
                 } else if (data.status === 'complete') {
                     addLog(data.message, 'success');
                     
@@ -634,8 +659,7 @@
 
                     addLog("Compilation pipeline finished. Best alignment artifact is available in the canvas.", "success");
                     eventSource.close();
-                    compileBtn.disabled = false;
-                    pulse.classList.remove('running');
+                    endOptimization();
                 }
 
                 // Intermediate telemetry telemetry update
@@ -649,8 +673,7 @@
             eventSource.onerror = function(err) {
                 addLog("SSE Connection error. Pipeline compilation stream closed.", "error");
                 eventSource.close();
-                compileBtn.disabled = false;
-                pulse.classList.remove('running');
+                endOptimization();
             };
         }
     </script>

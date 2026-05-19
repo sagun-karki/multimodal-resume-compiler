@@ -15,7 +15,8 @@ def run_optimization_pipeline(
     main_tex_path: str,
     generated_tex_path: str,
     output_dir: str,
-    tracker: TokenTracker
+    tracker: TokenTracker,
+    is_cancelled=None
 ):
     """
     Generator function that runs the 6-stage self-healing resume optimization loop.
@@ -23,6 +24,10 @@ def run_optimization_pipeline(
     """
     state = StateManager()
     
+    if is_cancelled and is_cancelled():
+        yield {"status": "error", "message": "Pipeline cancelled by user.", "stage": 0}
+        return
+        
     yield {"status": "info", "message": "Initiating Stage 0: Semantic Gap Analyzer...", "stage": 0}
     try:
         gap_report = run_stage0(profile_path, jd_path, tracker)
@@ -45,6 +50,9 @@ def run_optimization_pipeline(
     direction = "shorten"
 
     while not state.is_max_iterations_reached():
+        if is_cancelled and is_cancelled():
+            yield {"status": "error", "message": "Pipeline cancelled by user.", "stage": state.iteration}
+            return
         iteration = state.increment_iteration()
         yield {
             "status": "info",
