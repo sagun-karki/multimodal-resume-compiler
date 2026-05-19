@@ -1,12 +1,12 @@
 import os
 import subprocess
 
-def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str]:
+def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str]]:
     """
     Stage 3: Headless XeLaTeX Compiler
     Compiles the LaTeX source file and parses compile logs for errors or horizontal line overflows.
     
-    Returns: (success_status, critique_message)
+    Returns: (success_status, critique_message, overflowing_bullets)
     """
     os.makedirs(output_dir, exist_ok=True)
     
@@ -27,13 +27,13 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str]:
             timeout=30
         )
     except subprocess.TimeoutExpired:
-        return False, "STATUS: COMPILATION_FAILED\nCRITIQUE: XeLaTeX compilation timed out (exceeded 30 seconds)."
+        return False, "STATUS: COMPILATION_FAILED\nCRITIQUE: XeLaTeX compilation timed out (exceeded 30 seconds).", []
     
     log_path = os.path.join(output_dir, "resume.log")
     
     # Parse logs if they exist
     if not os.path.exists(log_path):
-        return False, f"STATUS: COMPILATION_FAILED\nCRITIQUE: Log file not found. System output: {result.stderr}"
+        return False, f"STATUS: COMPILATION_FAILED\nCRITIQUE: Log file not found. System output: {result.stderr}", []
         
     with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
         log_content = f.read()
@@ -44,15 +44,26 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str]:
         error_lines = [line for line in log_content.splitlines() if line.startswith("!")]
         critique = "STATUS: COMPILATION_FAILED\nCRITIQUE: LaTeX compilation syntax error:\n"
         critique += "\n".join(error_lines[:3])
-        return False, critique
+        return False, critique, []
 
-    # Check for custom bullet overflow metrics written via the \validatedbullet macro
-    if "LATEX_METRIC: BULLET_OVERFLOW_DETECTED" in log_content:
-        return False, (
-            "STATUS: OVERFLOW\n"
-            "CRITIQUE: Horizontal line overflow detected! One or more bullet points "
-            "exceeded the maximum geometric width boundaries (exceeding 2 full lines of text) "
-            "and triggered a layout alert. Please shorten the overflowing experience descriptions."
+    overflowing_bullets = []
+    # Parse the custom bullet overflow metric
+    prefix = "LATEX_METRIC: BULLET_OVERFLOW_DETECTED:"
+    for line in log_content.splitlines():
+        if line.startswith(prefix):
+            bullet_text = line[len(prefix):].strip()
+            if bullet_text and bullet_text not in overflowing_bullets:
+                overflowing_bullets.append(bullet_text)
+
+    if overflowing_bullets:
+        bullet_list_str = "\n- ".join([f'"{b[:40]}..."' for b in overflowing_bullets])
+        err_msg = (
+            f"STATUS: OVERFLOW\n"
+            f"CRITIQUE: Horizontal line overflow detected! The following bullet points "
+            f"exceed the maximum geometric width boundaries (exceeding 2 full lines of text):\n"
+            f"- {bullet_list_str}\n"
+            f"Please shorten these experience descriptions."
         )
+        return False, err_msg, overflowing_bullets
 
-    return True, ""
+    return True, "", []

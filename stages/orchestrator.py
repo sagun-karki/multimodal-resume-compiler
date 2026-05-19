@@ -39,6 +39,10 @@ def run_optimization_pipeline(
     critique = ""
     pdf_path = os.path.join(output_dir, "resume.pdf")
     png_path = os.path.join(output_dir, "resume.png")
+    
+    latex_content = None
+    failing_bullets_to_optimize = None
+    direction = "shorten"
 
     while not state.is_max_iterations_reached():
         iteration = state.increment_iteration()
@@ -51,8 +55,21 @@ def run_optimization_pipeline(
         # Stage 1: Text Generation
         yield {"status": "info", "message": f"Stage 1: Generating tailored LaTeX content (Iteration {iteration})...", "stage": 1}
         try:
-            latex_content = run_stage1(profile_path, jd_path, gap_report, critique, tracker)
+            latex_content = run_stage1(
+                profile_path,
+                jd_path,
+                gap_report,
+                critique,
+                tracker,
+                previous_latex=latex_content if iteration > 1 else None,
+                failing_bullets=failing_bullets_to_optimize,
+                direction=direction
+            )
             
+            # Reset surgical parameters for this iteration's run
+            failing_bullets_to_optimize = None
+            direction = "shorten"
+
             # Prevent Plateau loops
             is_unique = state.register_content(latex_content)
             if not is_unique:
@@ -68,9 +85,15 @@ def run_optimization_pipeline(
 
         # Stage 2: Programmatic Sanitizer
         yield {"status": "info", "message": "Stage 2: Running programmatic LaTeX sanitizer & orphan detector...", "stage": 2}
-        sanitized_content, success, sanitize_err = run_stage2(latex_content)
+        sanitized_content, success, sanitize_err, failing_bullets = run_stage2(latex_content)
+        
+        # Use sanitized content as the base
+        latex_content = sanitized_content
+
         if not success:
             critique = sanitize_err
+            failing_bullets_to_optimize = failing_bullets
+            direction = "shorten"
             state.add_warning(f"Iteration {iteration}: Sanitizer Error - {sanitize_err}")
             yield {"status": "warning", "message": f"Stage 2 Alert: {sanitize_err}. Retrying...", "stage": 2}
             continue
@@ -85,9 +108,12 @@ def run_optimization_pipeline(
 
         # Stage 3: XeLaTeX Compiler
         yield {"status": "info", "message": "Stage 3: Compiling document with XeLaTeX...", "stage": 3}
-        success, compile_critique = run_stage3(main_tex_path, output_dir)
+        success, compile_critique, overflowing_bullets = run_stage3(main_tex_path, output_dir)
         if not success:
             critique = compile_critique
+            if overflowing_bullets:
+                failing_bullets_to_optimize = overflowing_bullets
+            direction = "shorten"
             state.add_warning(f"Iteration {iteration}: Compiler Critique - {compile_critique}")
             yield {"status": "warning", "message": f"Stage 3 Compile Issue: {compile_critique}. Retrying...", "stage": 3}
             continue
@@ -97,6 +123,11 @@ def run_optimization_pipeline(
         success, router_critique = run_stage4(pdf_path, png_path)
         if not success:
             critique = router_critique
+            from stages.stage1_text_generator import extract_bullets
+            all_bullets = extract_bullets(latex_content)
+            all_bullets.sort(key=len, reverse=True)
+            failing_bullets_to_optimize = all_bullets[:3]
+            direction = "shorten"
             state.add_warning(f"Iteration {iteration}: Page Router Issue - {router_critique}")
             yield {"status": "warning", "message": f"Stage 4 Layout Violation: {router_critique}. Retrying...", "stage": 4}
             continue
@@ -107,6 +138,18 @@ def run_optimization_pipeline(
             accepted, vision_critique = run_stage5(png_path, tracker)
             if not accepted:
                 critique = vision_critique
+                from stages.stage1_text_generator import extract_bullets
+                all_bullets = extract_bullets(latex_content)
+                
+                if "EMPTY_BOTTOM" in vision_critique:
+                    all_bullets.sort(key=len)
+                    failing_bullets_to_optimize = all_bullets[:3]
+                    direction = "lengthen"
+                else:
+                    all_bullets.sort(key=len, reverse=True)
+                    failing_bullets_to_optimize = all_bullets[:3]
+                    direction = "shorten"
+
                 state.add_warning(f"Iteration {iteration}: Vision Inspector Critique - {vision_critique}")
                 yield {"status": "warning", "message": f"Stage 5 Visual Spacing Critique: {vision_critique}. Retrying...", "stage": 5}
                 continue

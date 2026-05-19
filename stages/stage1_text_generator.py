@@ -1,14 +1,107 @@
+import re
 import os
 import google.generativeai as genai
 from utils.config import TEXT_MODEL
 from utils.token_tracker import TokenTracker
 
-def run_stage1(profile_path: str, jd_path: str, gap_report: dict, critique: str, tracker: TokenTracker) -> str:
+def extract_bullets(latex_content: str) -> list[str]:
     """
-    Stage 1: Semantic Text Generator
-    Writes tailored resume content, incorporating gap report findings. If visual critique feedback
-    exists, it dynamically scales the content density (trimming or expanding bullet points).
+    Parses out the exact content strings inside all \validatedbullet{...} macros.
+    Handles nested curly braces up to arbitrary depths.
     """
+    bullets = []
+    pattern = r'\\validatedbullet\{'
+    for match in re.finditer(pattern, latex_content):
+        start = match.end()
+        brace_count = 1
+        i = start
+        while i < len(latex_content) and brace_count > 0:
+            if latex_content[i] == '{':
+                brace_count += 1
+            elif latex_content[i] == '}':
+                brace_count -= 1
+            i += 1
+        if brace_count == 0:
+            bullet_text = latex_content[start:i-1]
+            if bullet_text not in bullets:
+                bullets.append(bullet_text)
+    return bullets
+
+def optimize_single_bullet(bullet: str, direction: str, gap_report: dict, tracker: TokenTracker) -> str:
+    """
+    Surgically re-writes a single bullet point to be shorter or longer.
+    """
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set in the environment.")
+    genai.configure(api_key=api_key)
+
+    system_prompt = (
+        "You are an expert resume optimizer and copywriter.\n"
+        "Your task is to take a single resume bullet point and rewrite it. Follow these constraints:\n"
+        f"1. DIRECTION: You must {direction} the bullet point.\n"
+        "   - If 'shorten': rewrite the bullet point to be more concise (ideally under 85 characters, and strictly under 90 characters) so that it fits on a single line, while keeping the core achievements and ATS keywords.\n"
+        "   - If 'lengthen': expand and enrich the bullet point with more detail (making it longer) to occupy more space naturally.\n"
+        "2. Keep the formatting standard: Do NOT include \\validatedbullet{...} or any LaTeX wrapper command. Only return the raw text content.\n"
+        "3. Do NOT wrap your output in markdown, quotes, or any formatting. Return ONLY the rewritten text of the bullet point."
+    )
+
+    user_message = (
+        f"ORIGINAL BULLET POINT: {bullet}\n"
+        f"ATS KEYWORDS CONTEXT: {gap_report.get('target_keywords', []) if isinstance(gap_report, dict) else []}"
+    )
+
+    model = genai.GenerativeModel(
+        model_name=TEXT_MODEL,
+        system_instruction=system_prompt
+    )
+
+    response = model.generate_content(
+        user_message,
+        generation_config={"temperature": 0.2}
+    )
+
+    new_bullet = response.text.strip()
+    
+    # Track tokens
+    in_tokens = 0
+    out_tokens = 0
+    if response.usage_metadata:
+        in_tokens = response.usage_metadata.prompt_token_count
+        out_tokens = response.usage_metadata.candidates_token_count
+    tracker.track("text", in_tokens, out_tokens)
+
+    return new_bullet
+
+def run_stage1(
+    profile_path: str,
+    jd_path: str,
+    gap_report: dict,
+    critique: str,
+    tracker: TokenTracker,
+    previous_latex: str = None,
+    failing_bullets: list[str] = None,
+    direction: str = "shorten"
+) -> str:
+    """
+    Stage 1: Semantic Text Generator (with Surgical Bullet Optimization Support)
+    If previous_latex and failing_bullets are provided, surgically rewrites only those bullets.
+    Otherwise, generates the full resume dynamic body from scratch.
+    """
+    # CASE A: Surgical Optimization
+    if previous_latex and failing_bullets:
+        updated_latex = previous_latex
+        for old_bullet in failing_bullets:
+            # Re-write the single bullet
+            new_bullet = optimize_single_bullet(old_bullet, direction, gap_report, tracker)
+            # Find and replace in-place
+            target_str = f"\\validatedbullet{{{old_bullet}}}"
+            replacement_str = f"\\validatedbullet{{{new_bullet}}}"
+            if target_str in updated_latex:
+                updated_latex = updated_latex.replace(target_str, replacement_str)
+        return updated_latex
+
+    # CASE B: Full Initial Generation
     api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set in the environment.")

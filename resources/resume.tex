@@ -24,7 +24,7 @@
 \newcommand{\validatedbullet}[1]{%
   \sbox{\linebox}{#1}% Save the text to a geometric measurement box
   \ifdim\wd\linebox>2\textwidth% If the text box width is wider than two lines text width
-    \typeout{LATEX_METRIC: BULLET_OVERFLOW_DETECTED}% Write directly to log!
+    \typeout{LATEX_METRIC: BULLET_OVERFLOW_DETECTED: #1}% Write directly to log!
   \fi
   \item #1% Render bullet
 }
