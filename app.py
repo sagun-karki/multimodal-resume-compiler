@@ -80,6 +80,8 @@ def compile_stream():
     global PIPELINE_CANCELLED
     PIPELINE_CANCELLED = False
 
+    action = request.args.get("action", "all")
+
     # Verify Gemini API key is set
     if not os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
         def error_stream():
@@ -99,7 +101,8 @@ def compile_stream():
             generated_tex_path=GENERATED_TEX_PATH,
             output_dir=OUTPUT_DIR,
             tracker=tracker,
-            is_cancelled=lambda: PIPELINE_CANCELLED
+            is_cancelled=lambda: PIPELINE_CANCELLED,
+            action=action
         )
         for update in generator:
             yield f"data: {json.dumps(update)}\n\n"

@@ -16,7 +16,8 @@ def run_optimization_pipeline(
     generated_tex_path: str,
     output_dir: str,
     tracker: TokenTracker,
-    is_cancelled=None
+    is_cancelled=None,
+    action: str = "all"
 ):
     """
     Generator function that runs the 6-stage self-healing resume optimization loop.
@@ -27,19 +28,52 @@ def run_optimization_pipeline(
     if is_cancelled and is_cancelled():
         yield {"status": "error", "message": "Pipeline cancelled by user.", "stage": 0}
         return
+
+    gap_report_path = os.path.join(os.path.dirname(profile_path), "gap_report.json")
+    gap_report = None
+
+    if action in ("all", "analyze"):
+        yield {"status": "info", "message": "Initiating Stage 0: Semantic Gap Analyzer...", "stage": 0}
+        try:
+            gap_report = run_stage0(profile_path, jd_path, tracker)
+            with open(gap_report_path, "w", encoding="utf-8") as f:
+                json.dump(gap_report, f)
+            yield {
+                "status": "success",
+                "message": f"Stage 0 Complete. Closeness Score: {gap_report.get('closeness_score')}%",
+                "gap_report": gap_report,
+                "stage": 0
+            }
+            if action == "analyze":
+                yield {"status": "complete", "message": "Analysis phase complete.", "stage": 0, "gap_report": gap_report}
+                return
+        except Exception as e:
+            yield {"status": "error", "message": f"Stage 0 Failed: {str(e)}", "stage": 0}
+            return
+    else:
+        # action == "optimize"
+        if os.path.exists(gap_report_path):
+            try:
+                with open(gap_report_path, "r", encoding="utf-8") as f:
+                    gap_report = json.load(f)
+            except Exception:
+                gap_report = None
         
-    yield {"status": "info", "message": "Initiating Stage 0: Semantic Gap Analyzer...", "stage": 0}
-    try:
-        gap_report = run_stage0(profile_path, jd_path, tracker)
-        yield {
-            "status": "success",
-            "message": f"Stage 0 Complete. Closeness Score: {gap_report.get('closeness_score')}%",
-            "gap_report": gap_report,
-            "stage": 0
-        }
-    except Exception as e:
-        yield {"status": "error", "message": f"Stage 0 Failed: {str(e)}", "stage": 0}
-        return
+        if not gap_report:
+            yield {"status": "info", "message": "No cached gap report found. Running Stage 0 analysis first...", "stage": 0}
+            try:
+                gap_report = run_stage0(profile_path, jd_path, tracker)
+                with open(gap_report_path, "w", encoding="utf-8") as f:
+                    json.dump(gap_report, f)
+                yield {
+                    "status": "success",
+                    "message": f"Stage 0 Complete. Closeness Score: {gap_report.get('closeness_score')}%",
+                    "gap_report": gap_report,
+                    "stage": 0
+                }
+            except Exception as e:
+                yield {"status": "error", "message": f"Stage 0 Failed: {str(e)}", "stage": 0}
+                return
 
     critique = ""
     pdf_path = os.path.join(output_dir, "resume.pdf")
