@@ -46,6 +46,14 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
   \\fi
   \\item #1% Render bullet
 }
+
+\\newcommand{\\validatedskill}[1]{%
+  \\sbox{\\linebox}{#1}% Save the skill text to geometric measurement box
+  \\ifdim\\wd\\linebox>\\linewidth% If it wraps to the second line at all (strictly > 1.0 lines)
+    \\typeout{LATEX_METRIC: SKILL_OVERFLOW_DETECTED: #1}%
+  \\fi
+  \\item #1% Render skill
+}
 """
     if "\\begin{document}" in main_content:
         compile_content = main_content.replace("\\begin{document}", macro_definition + "\n\\begin{document}")
@@ -104,9 +112,11 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
 
     overflowing_bullets = []
     orphan_bullets = []
+    skill_overflow_bullets = []
     
     prefix_overflow = "LATEX_METRIC: BULLET_OVERFLOW_DETECTED:"
     prefix_orphan = "LATEX_METRIC: BULLET_ORPHAN_DETECTED:"
+    prefix_skill = "LATEX_METRIC: SKILL_OVERFLOW_DETECTED:"
     
     for line in log_content.splitlines():
         if line.startswith(prefix_overflow):
@@ -117,6 +127,10 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
             bullet_text = line[len(prefix_orphan):].strip()
             if bullet_text and bullet_text not in orphan_bullets:
                 orphan_bullets.append(bullet_text)
+        elif line.startswith(prefix_skill):
+            bullet_text = line[len(prefix_skill):].strip()
+            if bullet_text and bullet_text not in skill_overflow_bullets:
+                skill_overflow_bullets.append(bullet_text)
 
     failing_bullets = []
     critique_parts = []
@@ -134,6 +148,13 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
             f"Orphan line layout issue detected! The following bullet points wrap to a second line but fill less than 1.5 lines (leaving a dangling orphan on the new line):\n- {bullet_list_str}"
         )
         failing_bullets.extend(orphan_bullets)
+
+    if skill_overflow_bullets:
+        skill_list_str = "\n- ".join([f'"{b[:40]}..."' for b in skill_overflow_bullets])
+        critique_parts.append(
+            f"Skill category overflow detected! The following skill categories wrap to a second line (strictly > 1.0 lines). You MUST remove the least relevant skills to make them fit on a single line:\n- {skill_list_str}"
+        )
+        failing_bullets.extend(skill_overflow_bullets)
 
     if failing_bullets:
         err_msg = "STATUS: OVERFLOW\nCRITIQUE: " + "\n\n".join(critique_parts)

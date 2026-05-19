@@ -17,7 +17,7 @@ PRICING = {
 }
 
 # Execution Constraints
-MAX_ITERATIONS = 1
+MAX_ITERATIONS = 2
 
 # Typography and Layout boundaries
 RISKY_LENGTH_MIN = 90
