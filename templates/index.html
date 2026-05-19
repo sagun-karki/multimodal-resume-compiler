@@ -435,21 +435,7 @@
                 </div>
             </div>
 
-            <!-- Telemetry Metrics -->
-            <div class="telemetry-grid">
-                <div class="metric-card">
-                    <div class="metric-label">Input Tokens</div>
-                    <div class="metric-value" id="metric-input">0</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Output Tokens</div>
-                    <div class="metric-value" id="metric-output">0</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-label">Total Cost</div>
-                    <div class="metric-value cost" id="metric-cost">$0.0000</div>
-                </div>
-            </div>
+
 
             <!-- Terminal Real-time Logs -->
             <div class="terminal-card">
@@ -585,9 +571,6 @@
             }
 
             // Reset dashboard metrics
-            document.getElementById('metric-input').innerText = '0';
-            document.getElementById('metric-output').innerText = '0';
-            document.getElementById('metric-cost').innerText = '$0.0000';
             document.getElementById('terminal-logs').innerHTML = '';
             
             // Reset diagnostic report
@@ -645,12 +628,7 @@
                 } else if (data.status === 'complete') {
                     addLog(data.message, 'success');
                     
-                    // Show final telemetry cost report
-                    if (data.telemetry) {
-                        document.getElementById('metric-input').innerText = data.telemetry.input_tokens.toLocaleString();
-                        document.getElementById('metric-output').innerText = data.telemetry.output_tokens.toLocaleString();
-                        document.getElementById('metric-cost').innerText = `$${data.telemetry.accumulated_cost.toFixed(4)}`;
-                    }
+
 
                     // Reload output documents on the UI
                     const timestamp = new Date().getTime();
@@ -662,12 +640,7 @@
                     endOptimization();
                 }
 
-                // Intermediate telemetry telemetry update
-                if (data.telemetry) {
-                    document.getElementById('metric-input').innerText = data.telemetry.input_tokens.toLocaleString();
-                    document.getElementById('metric-output').innerText = data.telemetry.output_tokens.toLocaleString();
-                    document.getElementById('metric-cost').innerText = `$${data.telemetry.accumulated_cost.toFixed(4)}`;
-                }
+
             };
 
             eventSource.onerror = function(err) {
