@@ -108,7 +108,7 @@ def run_optimization_pipeline(
                 main_tex_content = f.read()
             
             import re
-            merged_content = re.sub(r'\\input\{.*?generated_data\.tex\}', sanitized_content, main_tex_content)
+            merged_content = re.sub(r'\\input\{.*?generated_data\.tex\}', lambda m: sanitized_content, main_tex_content)
             if merged_content == main_tex_content:
                 merged_content = main_tex_content.replace(r'\input{resources/generated_data.tex}', sanitized_content)
                 
