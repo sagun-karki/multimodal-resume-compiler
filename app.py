@@ -69,12 +69,12 @@ def compile_stream():
     """
     Server-Sent Events endpoint to stream resume compilation logs in real time.
     """
-    # Verify OpenAI API key is set
-    if not os.environ.get("OPENAI_API_KEY"):
+    # Verify Gemini API key is set
+    if not os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
         def error_stream():
             yield "data: " + json.dumps({
                 "status": "error",
-                "message": "API_KEY_ERROR: OPENAI_API_KEY environment variable is not set. Please set your API key in the environment or .env file."
+                "message": "API_KEY_ERROR: GEMINI_API_KEY or GOOGLE_API_KEY environment variable is not set. Please set your API key in the environment or .env file."
             }) + "\n\n"
         return Response(error_stream(), mimetype="text/event-stream")
 

@@ -1,18 +1,18 @@
 # Configuration variables for the optimization engine
 
 # Models configuration
-TEXT_MODEL = "gpt-4o-mini"
-VISION_MODEL = "gpt-4o"
+TEXT_MODEL = "gemini-2.5-flash"
+VISION_MODEL = "gemini-2.5-flash"
 
 # API Pricing Coefficients (per 1 Million tokens)
 PRICING = {
     "text": {
-        "input": 0.15,
-        "output": 0.60
+        "input": 0.075,
+        "output": 0.30
     },
     "vision": {
-        "input": 2.50,
-        "output": 10.00
+        "input": 0.075,
+        "output": 0.30
     }
 }
 

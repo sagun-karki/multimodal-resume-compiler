@@ -1,5 +1,5 @@
 import os
-from openai import OpenAI
+import google.generativeai as genai
 from utils.config import TEXT_MODEL
 from utils.token_tracker import TokenTracker
 
@@ -9,7 +9,10 @@ def run_stage1(profile_path: str, jd_path: str, gap_report: dict, critique: str,
     Writes tailored resume content, incorporating gap report findings. If visual critique feedback
     exists, it dynamically scales the content density (trimming or expanding bullet points).
     """
-    client = OpenAI()
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set in the environment.")
+    genai.configure(api_key=api_key)
 
     with open(profile_path, "r", encoding="utf-8") as f:
         profile_content = f.read()
@@ -45,20 +48,25 @@ def run_stage1(profile_path: str, jd_path: str, gap_report: dict, critique: str,
         f"CURRENT LAYOUT CRITIQUE (FEEDBACK LOOP):\n{critique if critique else 'No critique. This is the initial generation.'}"
     )
 
-    response = client.chat.completions.create(
-        model=TEXT_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message}
-        ],
-        temperature=0.1
+    # Call Gemini API
+    model = genai.GenerativeModel(
+        model_name=TEXT_MODEL,
+        system_instruction=system_prompt
     )
 
-    latex_content = response.choices[0].message.content.strip()
+    response = model.generate_content(
+        user_message,
+        generation_config={"temperature": 0.1}
+    )
+
+    latex_content = response.text.strip()
 
     # Track tokens
-    in_tokens = response.usage.prompt_tokens
-    out_tokens = response.usage.completion_tokens
+    in_tokens = 0
+    out_tokens = 0
+    if response.usage_metadata:
+        in_tokens = response.usage_metadata.prompt_token_count
+        out_tokens = response.usage_metadata.candidates_token_count
     tracker.track("text", in_tokens, out_tokens)
 
     return latex_content

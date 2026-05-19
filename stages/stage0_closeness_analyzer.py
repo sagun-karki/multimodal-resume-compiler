@@ -1,6 +1,6 @@
 import json
 import os
-from openai import OpenAI
+import google.generativeai as genai
 from utils.config import TEXT_MODEL
 from utils.token_tracker import TokenTracker
 
@@ -10,7 +10,10 @@ def run_stage0(profile_path: str, jd_path: str, tracker: TokenTracker) -> dict:
     Compares the master user profile with the target job description to compute a
     closeness score, match strengths, identify gaps, and select high-priority keywords.
     """
-    client = OpenAI()
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set in the environment.")
+    genai.configure(api_key=api_key)
 
     # Read input files
     with open(profile_path, "r", encoding="utf-8") as f:
@@ -33,23 +36,26 @@ def run_stage0(profile_path: str, jd_path: str, tracker: TokenTracker) -> dict:
 
     user_message = f"USER PROFILE:\n{profile_content}\n\nJOB DESCRIPTION:\n{jd_content}"
 
-    # Call OpenAI API
-    response = client.chat.completions.create(
-        model=TEXT_MODEL,
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message}
-        ],
-        temperature=0.0
+    # Call Gemini API
+    model = genai.GenerativeModel(
+        model_name=TEXT_MODEL,
+        system_instruction=system_prompt
     )
 
-    result_text = response.choices[0].message.content
+    response = model.generate_content(
+        user_message,
+        generation_config={"response_mime_type": "application/json"}
+    )
+
+    result_text = response.text
     result_data = json.loads(result_text)
 
     # Track tokens
-    in_tokens = response.usage.prompt_tokens
-    out_tokens = response.usage.completion_tokens
+    in_tokens = 0
+    out_tokens = 0
+    if response.usage_metadata:
+        in_tokens = response.usage_metadata.prompt_token_count
+        out_tokens = response.usage_metadata.candidates_token_count
     tracker.track("text", in_tokens, out_tokens)
 
     return result_data

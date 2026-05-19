@@ -1,12 +1,8 @@
-import base64
 import os
-from openai import OpenAI
+from PIL import Image
+import google.generativeai as genai
 from utils.config import VISION_MODEL
 from utils.token_tracker import TokenTracker
-
-def encode_image(image_path: str) -> str:
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode("utf-8")
 
 def run_stage5(png_image_path: str, tracker: TokenTracker) -> tuple[bool, str]:
     """
@@ -19,8 +15,16 @@ def run_stage5(png_image_path: str, tracker: TokenTracker) -> tuple[bool, str]:
     if not os.path.exists(png_image_path):
         return False, "STATUS: FILE_ERROR\nCRITIQUE: PNG rasterized resume was not found."
 
-    client = OpenAI()
-    base64_image = encode_image(png_image_path)
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set in the environment.")
+    genai.configure(api_key=api_key)
+
+    # Load image using PIL
+    try:
+        pil_image = Image.open(png_image_path)
+    except Exception as e:
+        return False, f"STATUS: FILE_ERROR\nCRITIQUE: Failed to open image: {str(e)}"
 
     system_prompt = (
         "You are an expert design QA inspector evaluating the layout balance of a compiled resume.\n"
@@ -40,30 +44,25 @@ def run_stage5(png_image_path: str, tracker: TokenTracker) -> tuple[bool, str]:
         "Followed by a detailed visual critique explaining your assessment."
     )
 
-    response = client.chat.completions.create(
-        model=VISION_MODEL,
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": system_prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{base64_image}"
-                        }
-                    }
-                ]
-            }
-        ],
-        temperature=0.0
+    # Call Gemini Vision Model
+    model = genai.GenerativeModel(
+        model_name=VISION_MODEL,
+        system_instruction=system_prompt
     )
 
-    critique = response.choices[0].message.content.strip()
+    response = model.generate_content(
+        [pil_image, "Perform the resume visual layout analysis."],
+        generation_config={"temperature": 0.0}
+    )
+
+    critique = response.text.strip()
 
     # Track tokens using vision pricing coefficient
-    in_tokens = response.usage.prompt_tokens
-    out_tokens = response.usage.completion_tokens
+    in_tokens = 0
+    out_tokens = 0
+    if response.usage_metadata:
+        in_tokens = response.usage_metadata.prompt_token_count
+        out_tokens = response.usage_metadata.candidates_token_count
     tracker.track("vision", in_tokens, out_tokens)
 
     # Determine status
