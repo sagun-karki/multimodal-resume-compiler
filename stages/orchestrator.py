@@ -102,8 +102,21 @@ def run_optimization_pipeline(
         try:
             with open(generated_tex_path, "w", encoding="utf-8") as f:
                 f.write(sanitized_content)
+            
+            # Merge and write the full final resume.tex to output_dir
+            with open(main_tex_path, "r", encoding="utf-8") as f:
+                main_tex_content = f.read()
+            
+            import re
+            merged_content = re.sub(r'\\input\{.*?generated_data\.tex\}', sanitized_content, main_tex_content)
+            if merged_content == main_tex_content:
+                merged_content = main_tex_content.replace(r'\input{resources/generated_data.tex}', sanitized_content)
+                
+            merged_tex_path = os.path.join(output_dir, "resume.tex")
+            with open(merged_tex_path, "w", encoding="utf-8") as f:
+                f.write(merged_content)
         except Exception as e:
-            yield {"status": "error", "message": f"Failed to write generated_data.tex: {str(e)}", "stage": 2}
+            yield {"status": "error", "message": f"Failed to write generated files: {str(e)}", "stage": 2}
             return
 
         # Stage 3: XeLaTeX Compiler
