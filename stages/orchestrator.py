@@ -29,7 +29,7 @@ def run_optimization_pipeline(
         yield {"status": "error", "message": "Pipeline cancelled by user.", "stage": 0}
         return
 
-    gap_report_path = os.path.join(os.path.dirname(profile_path), "gap_report.json")
+    gap_report_path = os.path.join(output_dir, "gap_report.json")
     gap_report = None
 
     if action in ("all", "analyze"):
@@ -155,6 +155,15 @@ def run_optimization_pipeline(
         # Stage 3: XeLaTeX Compiler
         yield {"status": "info", "message": "Stage 3: Compiling document with XeLaTeX...", "stage": 3}
         success, compile_critique, overflowing_bullets = run_stage3(main_tex_path, output_dir)
+        
+        # Always rasterize the PNG so the UI can show the current state, even if compilation had typographic errors
+        router_success, router_critique = True, ""
+        try:
+            from stages.stage4_pymupdf_router import run_stage4
+            router_success, router_critique = run_stage4(pdf_path, png_path)
+        except Exception as e:
+            yield {"status": "warning", "message": f"Failed to rasterize PNG: {str(e)}", "stage": 4}
+
         if not success:
             critique = compile_critique
             if overflowing_bullets:
@@ -164,10 +173,9 @@ def run_optimization_pipeline(
             yield {"status": "warning", "message": f"Stage 3 Compile Issue: {compile_critique}. Retrying...", "stage": 3}
             continue
 
-        # Stage 4: Page Count Router & Rasterizer
-        yield {"status": "info", "message": "Stage 4: Checking page boundaries and rasterizing to PNG...", "stage": 4}
-        success, router_critique = run_stage4(pdf_path, png_path)
-        if not success:
+        # Stage 4: Page Count Router validation
+        yield {"status": "info", "message": "Stage 4: Checking page boundaries...", "stage": 4}
+        if not router_success:
             critique = router_critique
             from stages.stage1_text_generator import extract_bullets
             all_bullets = extract_bullets(latex_content)

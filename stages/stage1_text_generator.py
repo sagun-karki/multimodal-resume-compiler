@@ -43,8 +43,9 @@ def optimize_single_bullet(bullet: str, direction: str, gap_report: dict, tracke
         "   - If 'shorten': rewrite the bullet point to be more concise (ideally under 85 characters, and strictly under 90 characters) so that it fits on a single line, while keeping the core achievements and ATS keywords.\n"
         "   - If 'lengthen': expand and enrich the bullet point with more detail (making it longer) to occupy more space naturally.\n"
         "2. Keep the formatting standard: Do NOT include \\validatedbullet{...} or any LaTeX wrapper command. Only return the raw text content.\n"
-        "3. Do NOT bold any part of the sentence inside the bullet point (never use \\textbf or other bold formatting inside the bullet text).\n"
-        "4. Do NOT wrap your output in markdown, quotes, or any formatting. Return ONLY the rewritten text of the bullet point."
+        "3. Subtlety constraint: Make as little edit as possible. Ensure the output remains as close to the original as possible. Do not hyper-tailor or embellish facts to fit the ATS keywords.\n"
+        "4. Do NOT bold any part of the sentence inside the bullet point (never use \\textbf or other bold formatting inside the bullet text).\n"
+        "5. Do NOT wrap your output in markdown, quotes, or any formatting. Return ONLY the rewritten text of the bullet point."
     )
 
     user_message = (
@@ -128,7 +129,8 @@ def run_stage1(
         "projects, and honors listings. Use standard \\item only for skills listing values.\n"
         "6. Spacing variables: You are FORBIDDEN from modifying margins or adding LaTeX spacing hacks like \\vspace or \\vfill. "
         "All space optimization must be solved via text length scaling.\n"
-        "7. Layout and Structural constraints:\n"
+        "7. Subtlety constraint: Make as little edit as possible. Make the output as close as possible to the original user profile. Do not hyper-tailor or completely rewrite the resume just for the job description.\n"
+        "8. Layout and Structural constraints:\n"
         "   - Do NOT use \\subsection or \\subsection* anywhere in the document.\n"
         "   - Do NOT bold any individual words or phrases inside the bullet points. Every bullet point text must be plain text without any \\textbf{...} wrapping inside the bullet content.\n"
         "   - The SKILLS section must use: \\begin{itemize}[leftmargin=0.7em, label={}, itemsep=0pt, parsep=0pt, topsep=0pt]\n"
