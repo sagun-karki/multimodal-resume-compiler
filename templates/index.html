@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous Multimodal Resume Compiler</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #0b0f19;
+            --card-bg: rgba(20, 26, 42, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-primary: #3b82f6; /* Modern Blue */
+            --accent-primary-glow: rgba(59, 130, 246, 0.35);
+            --accent-success: #10b981; /* Emerald */
+            --accent-warning: #f59e0b; /* Amber */
+            --accent-error: #ef4444; /* Rose */
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --sidebar-width: 550px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            background-image: 
+                radial-gradient(at 10% 20%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 90% 80%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+        }
+
+        /* Sidebar Container */
+        .sidebar {
+            width: var(--sidebar-width);
+            border-right: 1px solid var(--card-border);
+            background: rgba(11, 15, 25, 0.85);
+            backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            z-index: 10;
+        }
+
+        /* App Title Header */
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #60a5fa, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .version-badge {
+            font-size: 10px;
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent-primary);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-weight: 500;
+        }
+
+        /* Scrollable Panels */
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Group Editors Card */
+        .editor-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        textarea {
+            width: 100%;
+            height: 160px;
+            background: rgba(10, 12, 20, 0.8);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            color: var(--text-main);
+            padding: 12px;
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        textarea:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--accent-primary-glow);
+        }
+
+        /* Compile Trigger Section */
+        .control-panel {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), #2563eb);
+            color: white;
+            flex: 1;
+            box-shadow: 0 4px 14px var(--accent-primary-glow);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--accent-primary-glow);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Telemetry Dashboard Grid */
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .metric-value.cost {
+            color: var(--accent-success);
+        }
+
+        /* Terminal Logs Container */
+        .terminal-card {
+            background: #05070c;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'Fira Code', monospace;
+            font-size: 12.5px;
+            height: 240px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 10px;
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .terminal-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+        .terminal-dot:nth-child(2) { background: #eab308; }
+        .terminal-dot:nth-child(3) { background: #22c55e; }
+
+        .terminal-logs {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            scroll-behavior: smooth;
+        }
+
+        .log-entry {
+            line-height: 1.4;
+        }
+
+        .log-entry.info { color: #9ca3af; }
+        .log-entry.success { color: #10b981; }
+        .log-entry.warning { color: #f59e0b; }
+        .log-entry.error { color: #ef4444; font-weight: 600; }
+
+        /* Canvas Main Display Area */
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0f172a;
+            position: relative;
+        }
+
+        .canvas-header {
+            padding: 18px 24px;
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid var(--card-border);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 5;
+        }
+
+        .canvas-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .canvas-pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-success);
+            box-shadow: 0 0 8px var(--accent-success);
+        }
+
+        .canvas-pulse.running {
+            background: var(--accent-warning);
+            box-shadow: 0 0 8px var(--accent-warning);
+            animation: pulse-animation 1.5s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+
+        /* Mode Selector Toggle */
+        .view-toggle {
+            display: flex;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            padding: 3px;
+            border-radius: 8px;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Frame Containers */
+        .preview-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .resume-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            background: white;
+        }
+
+        .resume-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            background: white;
+            display: none;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Left Monitoring Panel -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>Resume Compiler</h1>
+            <span class="version-badge">Self-Healing v1.0</span>
+        </div>
+
+        <div class="sidebar-content">
+            <!-- Text Editors -->
+            <div class="editor-card">
+                <div class="card-title">
+                    <span>Master User Profile</span>
+                    <span style="font-size: 11px; color: var(--text-muted);">Markdown format</span>
+                </div>
+                <textarea id="profile-editor" spellcheck="false">${profile}</textarea>
+
+                <div class="card-title" style="margin-top: 8px;">
+                    <span>Target Job Description</span>
+                </div>
+                <textarea id="jd-editor" spellcheck="false" style="height: 120px;">${job_description}</textarea>
+
+                <div class="control-panel">
+                    <button class="btn btn-primary" id="compile-btn" onclick="startOptimization()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        Compile & Optimize
+                    </button>
+                </div>
+            </div>
+
+            <!-- Telemetry Metrics -->
+            <div class="telemetry-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Input Tokens</div>
+                    <div class="metric-value" id="metric-input">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Output Tokens</div>
+                    <div class="metric-value" id="metric-output">0</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Total Cost</div>
+                    <div class="metric-value cost" id="metric-cost">$0.0000</div>
+                </div>
+            </div>
+
+            <!-- Terminal Real-time Logs -->
+            <div class="terminal-card">
+                <div class="terminal-header">
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <span style="margin-left: 6px;">Execution Terminal logs</span>
+                </div>
+                <div class="terminal-logs" id="terminal-logs">
+                    <div class="log-entry info">> Engine idle. Click 'Compile & Optimize' to initiate.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Presentation Canvas -->
+    <div class="canvas-area">
+        <div class="canvas-header">
+            <div class="canvas-title">
+                <div class="canvas-pulse" id="canvas-pulse"></div>
+                <span>Render Canvas</span>
+            </div>
+            
+            <div class="view-toggle">
+                <button class="toggle-btn active" id="btn-pdf" onclick="switchView('pdf')">PDF Viewer</button>
+                <button class="toggle-btn" id="btn-png" onclick="switchView('png')">Vision View (PNG)</button>
+            </div>
+        </div>
+
+        <div class="preview-container">
+            <!-- PDF Viewer -->
+            <iframe class="resume-frame" id="pdf-frame" src="/output/resume.pdf"></iframe>
+            <!-- Rasterized PNG (Vision feed) -->
+            <img class="resume-image" id="png-frame" src="/output/resume.png" alt="Resume PNG Preview">
+        </div>
+    </div>
+
+    <script>
+        let eventSource = null;
+
+        // Render templated variables from backend
+        // Since templates are handled by Flask render_template, we use raw string variables
+        // We've set value in innerHTML using the default templating structure
+        document.getElementById('profile-editor').value = `{{ profile|safe }}`;
+        document.getElementById('jd-editor').value = `{{ job_description|safe }}`;
+
+        function addLog(message, status = 'info') {
+            const container = document.getElementById('terminal-logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${status}`;
+            entry.innerHTML = `> [${new Date().toLocaleTimeString()}] ${message.replace(/\n/g, '<br>')}`;
+            container.appendChild(entry);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function switchView(mode) {
+            const pdfFrame = document.getElementById('pdf-frame');
+            const pngFrame = document.getElementById('png-frame');
+            const btnPdf = document.getElementById('btn-pdf');
+            const btnPng = document.getElementById('btn-png');
+
+            if (mode === 'pdf') {
+                pdfFrame.style.display = 'block';
+                pngFrame.style.display = 'none';
+                btnPdf.classList.add('active');
+                btnPng.classList.remove('active');
+            } else {
+                pdfFrame.style.display = 'none';
+                pngFrame.style.display = 'block';
+                btnPdf.classList.remove('active');
+                btnPng.classList.add('active');
+            }
+        }
+
+        async function startOptimization() {
+            const compileBtn = document.getElementById('compile-btn');
+            const pulse = document.getElementById('canvas-pulse');
+            
+            // Save local editor contents to disk first
+            const profile = document.getElementById('profile-editor').value;
+            const jd = document.getElementById('jd-editor').value;
+            
+            compileBtn.disabled = true;
+            pulse.classList.add('running');
+            addLog("Saving user profile & target job description to workspace...", "info");
+
+            try {
+                const saveRes = await fetch('/api/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profile, job_description: jd })
+                });
+                const saveResult = await saveRes.json();
+                if (saveResult.status !== 'success') {
+                    addLog(`Error saving content: ${saveResult.message}`, "error");
+                    compileBtn.disabled = false;
+                    pulse.classList.remove('running');
+                    return;
+                }
+            } catch (err) {
+                addLog(`Failed to communicate with save API: ${err}`, "error");
+                compileBtn.disabled = false;
+                pulse.classList.remove('running');
+                return;
+            }
+
+            // Close existing stream connection
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            // Reset dashboard metrics
+            document.getElementById('metric-input').innerText = '0';
+            document.getElementById('metric-output').innerText = '0';
+            document.getElementById('metric-cost').innerText = '$0.0000';
+            document.getElementById('terminal-logs').innerHTML = '';
+            
+            addLog("Executing 6-stage self-healing compilation loop...", "info");
+
+            // Open stream channel
+            eventSource = new EventSource('/stream');
+
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.status === 'info') {
+                    addLog(data.message, 'info');
+                } else if (data.status === 'success') {
+                    addLog(data.message, 'success');
+                } else if (data.status === 'warning') {
+                    addLog(data.message, 'warning');
+                } else if (data.status === 'error') {
+                    addLog(data.message, 'error');
+                    eventSource.close();
+                    compileBtn.disabled = false;
+                    pulse.classList.remove('running');
+                } else if (data.status === 'complete') {
+                    addLog(data.message, 'success');
+                    
+                    // Show final telemetry cost report
+                    if (data.telemetry) {
+                        document.getElementById('metric-input').innerText = data.telemetry.input_tokens.toLocaleString();
+                        document.getElementById('metric-output').innerText = data.telemetry.output_tokens.toLocaleString();
+                        document.getElementById('metric-cost').innerText = `$${data.telemetry.accumulated_cost.toFixed(4)}`;
+                    }
+
+                    // Reload output documents on the UI
+                    const timestamp = new Date().getTime();
+                    document.getElementById('pdf-frame').src = `/output/resume.pdf?t=${timestamp}`;
+                    document.getElementById('png-frame').src = `/output/resume.png?t=${timestamp}`;
+
+                    addLog("Compilation pipeline finished. Best alignment artifact is available in the canvas.", "success");
+                    eventSource.close();
+                    compileBtn.disabled = false;
+                    pulse.classList.remove('running');
+                }
+
+                // Intermediate telemetry telemetry update
+                if (data.telemetry) {
+                    document.getElementById('metric-input').innerText = data.telemetry.input_tokens.toLocaleString();
+                    document.getElementById('metric-output').innerText = data.telemetry.output_tokens.toLocaleString();
+                    document.getElementById('metric-cost').innerText = `$${data.telemetry.accumulated_cost.toFixed(4)}`;
+                }
+            };
+
+            eventSource.onerror = function(err) {
+                addLog("SSE Connection error. Pipeline compilation stream closed.", "error");
+                eventSource.close();
+                compileBtn.disabled = false;
+                pulse.classList.remove('running');
+            };
+        }
+    </script>
+</body>
+</html>
