@@ -15,12 +15,18 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
         main_content = f.read()
         
     macro_definition = """
-% Custom wrapping helper to measure text width and output warning tags to the compile log
+% Custom wrapping helper to measure text width and output warning/orphan tags to the compile log
 \\newsavebox{\\linebox}
 \\newcommand{\\validatedbullet}[1]{%
   \\sbox{\\linebox}{#1}% Save the text to a geometric measurement box
-  \\ifdim\\wd\\linebox>2\\textwidth% If the text box width is wider than two lines text width
+  \\ifdim\\wd\\linebox>2\\linewidth% If the text box width is wider than two lines text width
     \\typeout{LATEX_METRIC: BULLET_OVERFLOW_DETECTED: #1}% Write directly to log!
+  \\else
+    \\ifdim\\wd\\linebox>\\linewidth% If it wraps to the second line
+      \\ifdim\\wd\\linebox<1.5\\linewidth% But is less than 1.5 lines (underfilled/orphan)
+        \\typeout{LATEX_METRIC: BULLET_ORPHAN_DETECTED: #1}%
+      \\fi
+    \\fi
   \\fi
   \\item #1% Render bullet
 }
@@ -81,23 +87,40 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
         return False, critique, []
 
     overflowing_bullets = []
-    # Parse the custom bullet overflow metric
-    prefix = "LATEX_METRIC: BULLET_OVERFLOW_DETECTED:"
+    orphan_bullets = []
+    
+    prefix_overflow = "LATEX_METRIC: BULLET_OVERFLOW_DETECTED:"
+    prefix_orphan = "LATEX_METRIC: BULLET_ORPHAN_DETECTED:"
+    
     for line in log_content.splitlines():
-        if line.startswith(prefix):
-            bullet_text = line[len(prefix):].strip()
+        if line.startswith(prefix_overflow):
+            bullet_text = line[len(prefix_overflow):].strip()
             if bullet_text and bullet_text not in overflowing_bullets:
                 overflowing_bullets.append(bullet_text)
+        elif line.startswith(prefix_orphan):
+            bullet_text = line[len(prefix_orphan):].strip()
+            if bullet_text and bullet_text not in orphan_bullets:
+                orphan_bullets.append(bullet_text)
 
+    failing_bullets = []
+    critique_parts = []
+    
     if overflowing_bullets:
         bullet_list_str = "\n- ".join([f'"{b[:40]}..."' for b in overflowing_bullets])
-        err_msg = (
-            f"STATUS: OVERFLOW\n"
-            f"CRITIQUE: Horizontal line overflow detected! The following bullet points "
-            f"exceed the maximum geometric width boundaries (exceeding 2 full lines of text):\n"
-            f"- {bullet_list_str}\n"
-            f"Please shorten these experience descriptions."
+        critique_parts.append(
+            f"Horizontal line overflow detected! The following bullet points exceed 2 full lines of text:\n- {bullet_list_str}"
         )
-        return False, err_msg, overflowing_bullets
+        failing_bullets.extend(overflowing_bullets)
+        
+    if orphan_bullets:
+        bullet_list_str = "\n- ".join([f'"{b[:40]}..."' for b in orphan_bullets])
+        critique_parts.append(
+            f"Orphan line layout issue detected! The following bullet points wrap to a second line but fill less than 1.5 lines (leaving a dangling orphan on the new line):\n- {bullet_list_str}"
+        )
+        failing_bullets.extend(orphan_bullets)
+
+    if failing_bullets:
+        err_msg = "STATUS: OVERFLOW\nCRITIQUE: " + "\n\n".join(critique_parts)
+        return False, err_msg, failing_bullets
 
     return True, "", []
