@@ -1,0 +1,21 @@
+Title: Senior Fullstack & ML Engineer
+
+Company: NextGen AI Systems
+
+Location: Remote / San Francisco, CA
+
+Job Description:
+We are looking for a Senior Fullstack and Machine Learning Engineer to join our core team. You will lead the design and development of autonomous agent systems, semantic search engines, and real-time dashboard UI layouts.
+
+Key Responsibilities:
+- Build high-performance applications with Python, Flask, and modern JavaScript/React.
+- Design real-time data streaming pipelines and microservice architectures.
+- Implement Retrieval-Augmented Generation (RAG) using vector databases (like FAISS) and customize LLM orchestrations.
+- Optimize application latency, database query times, and monitor system execution metrics.
+- Deploy applications using Docker, Kubernetes, and configure automated CI/CD pipelines.
+
+Required Skills:
+- Professional experience with Flask, React, Docker, and PostgreSQL.
+- Experience with AI frameworks, LLM APIs, FAISS, and token metrics telemetry.
+- High attention to performance tuning, latency reduction, and visual layout presentation.
+- Outstanding communication and collaboration skills.
