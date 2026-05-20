@@ -55,10 +55,11 @@ class CoordinatorAgent:
                     "status": "success",
                     "message": f"[ATS Analyzer Agent] Gap analysis complete. Closeness Score: {gap_report.get('closeness_score')}%",
                     "gap_report": gap_report,
-                    "stage": 0
+                    "stage": 0,
+                    "telemetry": self.tracker.get_telemetry()
                 }
                 if action == "analyze":
-                    yield {"status": "complete", "message": "Analysis phase complete.", "stage": 0, "gap_report": gap_report}
+                    yield {"status": "complete", "message": "Analysis phase complete.", "stage": 0, "gap_report": gap_report, "telemetry": self.tracker.get_telemetry()}
                     return
             except Exception as e:
                 yield {"status": "error", "message": f"[ATS Analyzer Agent] Failed: {str(e)}", "stage": 0}
@@ -88,7 +89,8 @@ class CoordinatorAgent:
                         "status": "success",
                         "message": f"[ATS Analyzer Agent] Complete. Closeness Score: {gap_report.get('closeness_score')}%",
                         "gap_report": gap_report,
-                        "stage": 0
+                        "stage": 0,
+                        "telemetry": self.tracker.get_telemetry()
                     }
                 except Exception as e:
                     yield {"status": "error", "message": f"[ATS Analyzer Agent] Failed: {str(e)}", "stage": 0}
