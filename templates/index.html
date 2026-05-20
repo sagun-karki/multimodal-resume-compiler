@@ -19,14 +19,6 @@
             <span class="status-badge">STABLE_STATE</span>
         </div>
         <div class="header-right">
-            <div class="view-toggle">
-                <span>OUTPUT:</span>
-                <button class="view-btn active" id="view-render">RENDER</button>
-            </div>
-            <div class="format-toggle">
-                <button class="format-btn active" id="btn-pdf" onclick="switchFormat('pdf')">PDF</button>
-                <button class="format-btn" id="btn-png" onclick="switchFormat('png')">PNG</button>
-            </div>
             <div style="display:flex; gap:12px; align-items:center;">
                 <span id="page-count">01 / 01 PAGE</span>
             </div>
@@ -86,10 +78,7 @@
         </section>
 
         <section class="right-panel">
-            <div class="preview-wrapper" id="preview-wrapper">
-                <iframe id="pdf-frame" class="preview-frame" src="/output/resume.pdf"></iframe>
-                <img id="png-frame" class="preview-frame" src="/output/resume.png" alt="Resume PNG Preview">
-            </div>
+            <iframe id="pdf-frame" class="preview-frame" src="/output/resume.pdf"></iframe>
         </section>
     </main>
 

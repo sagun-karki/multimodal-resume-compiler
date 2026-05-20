@@ -128,7 +128,7 @@ main {
 }
 
 .left-panel {
-    width: 35%;
+    width: 50%;
     border-right: 1px solid var(--border-color);
     background: var(--bg-panel);
     display: flex;
@@ -137,14 +137,12 @@ main {
 }
 
 .right-panel {
-    width: 65%;
+    width: 50%;
     background: var(--bg-canvas);
     display: flex;
-    align-items: center;
-    justify-content: center;
     position: relative;
-    padding: 32px;
-    overflow: auto;
+    padding: 0;
+    overflow: hidden;
 }
 
 /* Tabs */
@@ -330,22 +328,12 @@ textarea {
 .log-type-error { background: rgba(255,107,107,0.2); color: var(--accent-red); }
 
 /* Canvas / Preview */
-.preview-wrapper {
-    position: relative;
-    box-shadow: 0 15px 50px -15px rgba(0,0,0,0.8);
-    transform-origin: top center;
-}
 .preview-frame {
-    width: 612px;
-    height: 792px;
-    border: 1px solid #ccc;
+    width: 100%;
+    height: 100%;
+    border: none;
     background: white;
     display: block;
-}
-#png-frame {
-    display: none;
-    max-width: 612px;
-    height: auto;
 }
 
 ::-webkit-scrollbar { width: 6px; }
