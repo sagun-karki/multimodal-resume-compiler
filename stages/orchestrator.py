@@ -20,7 +20,7 @@ def run_optimization_pipeline(
     action: str = "all"
 ):
     """
-    Generator function that runs the 6-stage self-healing resume optimization loop.
+    Generator function that runs the 6-stage auto-correcting resume optimization loop.
     Yields dictionary updates for streaming progress logs to the Flask UI.
     """
     state = StateManager()
@@ -91,7 +91,7 @@ def run_optimization_pipeline(
         iteration = state.increment_iteration()
         yield {
             "status": "info",
-            "message": f"--- Starting Self-Healing Iteration {iteration}/{state.iteration if state.iteration else 5} ---",
+            "message": f"--- Starting Auto-Correcting Iteration {iteration}/{state.iteration if state.iteration else 5} ---",
             "iteration": iteration
         }
 
@@ -231,7 +231,7 @@ def run_optimization_pipeline(
     if state.iteration >= MAX_ITERATIONS and critique and not critique.startswith("STATUS: ACCEPTED"):
         yield {
             "status": "warning",
-            "message": f"Self-healing pipeline reached the maximum of {MAX_ITERATIONS} iterations without full visual acceptance. Returning best-effort output.",
+            "message": f"Auto-correcting pipeline reached the maximum of {MAX_ITERATIONS} iterations without full visual acceptance. Returning best-effort output.",
             "stage": 5
         }
     

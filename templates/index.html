@@ -401,7 +401,7 @@
     <div class="sidebar">
         <div class="sidebar-header">
             <h1>Resume Compiler</h1>
-            <span class="version-badge">Self-Healing v1.0</span>
+            <span class="version-badge">Auto-Correcting v1.0</span>
         </div>
 
         <div class="sidebar-content">
@@ -603,7 +603,7 @@
                 document.getElementById('diagnostic-keywords').innerHTML = '';
             }
             
-            addLog(action === 'analyze' ? "Executing Stage 0: Semantic Gap Analyzer..." : "Executing self-healing optimization loop...", "info");
+            addLog(action === 'analyze' ? "Executing Stage 0: Semantic Gap Analyzer..." : "Executing auto-correcting optimization loop...", "info");
 
             // Open stream channel with action parameter
             eventSource = new EventSource(`/stream?action=${action}`);
