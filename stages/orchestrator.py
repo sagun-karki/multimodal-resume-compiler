@@ -1,14 +1,11 @@
 import os
 import json
-from utils.state_manager import StateManager
-from utils.token_tracker import TokenTracker
+from utils.context import PipelineContext
 from utils.helpers import extract_bullets
 from stages.stage0_closeness_analyzer import run_stage0
 from stages.stage1_text_generator import run_stage1
-from stages.stage2_python_sanitizer import run_stage2
-from stages.stage3_latex_compiler import run_stage3
-from stages.stage4_pymupdf_router import run_stage4
-from stages.stage5_vision_inspector import run_stage5
+from stages.stage2_pdf_manager import run_stage2
+from stages.stage3_vision_inspector import run_stage3
 
 def run_optimization_pipeline(
     profile_path: str,
@@ -16,16 +13,14 @@ def run_optimization_pipeline(
     main_tex_path: str,
     generated_tex_path: str,
     output_dir: str,
-    tracker: TokenTracker,
+    tracker: PipelineContext,
     is_cancelled=None,
     action: str = "all"
 ):
     """
-    Generator function that runs the 6-stage auto-correcting resume optimization loop.
+    Generator function that runs the 4-stage auto-correcting resume optimization loop.
     Yields dictionary updates for streaming progress logs to the Flask UI.
     """
-    state = StateManager()
-    
     if is_cancelled and is_cancelled():
         yield {"status": "error", "message": "Pipeline cancelled by user.", "stage": 0}
         return
@@ -33,6 +28,7 @@ def run_optimization_pipeline(
     gap_report_path = os.path.join(output_dir, "gap_report.json")
     gap_report = None
 
+    # --- Stage 0: Semantic Gap Analyzer ---
     if action in ("all", "analyze"):
         yield {"status": "info", "message": "Initiating Stage 0: Semantic Gap Analyzer...", "stage": 0}
         try:
@@ -77,7 +73,6 @@ def run_optimization_pipeline(
                 return
 
     critique = ""
-    pdf_path = os.path.join(output_dir, "resume.pdf")
     png_path = os.path.join(output_dir, "resume.png")
     
     latex_content = None
@@ -85,14 +80,16 @@ def run_optimization_pipeline(
     failing_bullets_to_optimize = None
     direction = "shorten"
 
-    while not state.is_max_iterations_reached():
+    # --- Auto-Correcting Optimization Loop ---
+    while not tracker.is_max_iterations_reached():
         if is_cancelled and is_cancelled():
-            yield {"status": "error", "message": "Pipeline cancelled by user.", "stage": state.iteration}
+            yield {"status": "error", "message": "Pipeline cancelled by user.", "stage": tracker.iteration}
             return
-        iteration = state.increment_iteration()
+            
+        iteration = tracker.increment_iteration()
         yield {
             "status": "info",
-            "message": f"--- Starting Auto-Correcting Iteration {iteration}/{state.iteration if state.iteration else 5} ---",
+            "message": f"--- Starting Auto-Correcting Iteration {iteration} ---",
             "iteration": iteration
         }
 
@@ -115,7 +112,7 @@ def run_optimization_pipeline(
             direction = "shorten"
 
             # Prevent Plateau loops
-            is_unique = state.register_content(latex_content)
+            is_unique = tracker.register_content(latex_content)
             if not is_unique:
                 yield {
                     "status": "warning",
@@ -127,71 +124,39 @@ def run_optimization_pipeline(
             yield {"status": "error", "message": f"Stage 1 Failed: {str(e)}", "stage": 1}
             return
 
-        # Stage 2: Programmatic Sanitizer
-        yield {"status": "info", "message": "Stage 2: Running programmatic LaTeX sanitizer & orphan detector...", "stage": 2}
-        sanitized_content, success, sanitize_err, failing_bullets = run_stage2(latex_content)
-        
-        # Use sanitized content as the base
-        latex_content = sanitized_content
-
-        if not success:
-            critique = sanitize_err
-            failing_bullets_to_optimize = failing_bullets
-            direction = "shorten"
-            state.add_warning(f"Iteration {iteration}: Sanitizer Error - {sanitize_err}")
-            yield {"status": "warning", "message": f"Stage 2 Alert: {sanitize_err}. Retrying...", "stage": 2}
-            continue
-
-        # Write sanitized data to disk
+        # Write generated data to disk
         try:
             with open(generated_tex_path, "w", encoding="utf-8") as f:
-                f.write(sanitized_content)
-            
-            # Merge and write the clean final resume.tex to output_dir
-            from utils.latex_cleaner import clean_and_write
-            clean_and_write(main_tex_path, generated_tex_path, os.path.join(output_dir, "resume.tex"))
+                f.write(latex_content)
         except Exception as e:
-            yield {"status": "error", "message": f"Failed to write generated files: {str(e)}", "stage": 2}
+            yield {"status": "error", "message": f"Failed to write generated files: {str(e)}", "stage": 1}
             return
 
-        # Stage 3: XeLaTeX Compiler
-        yield {"status": "info", "message": "Stage 3: Compiling document with XeLaTeX...", "stage": 3}
-        success, compile_critique, overflowing_bullets = run_stage3(main_tex_path, output_dir)
+        # Stage 2: XeLaTeX Compiler & Page Boundary Validation
+        yield {"status": "info", "message": "Stage 2: Compiling document with XeLaTeX & validating layout...", "stage": 2}
+        success, compile_critique, overflowing_bullets = run_stage2(main_tex_path, output_dir)
         
-        # Always rasterize the PNG so the UI can show the current state, even if compilation had typographic errors
-        router_success, router_critique = True, ""
+        # Merge and write the clean final resume.tex to output_dir
         try:
-            from stages.stage4_pymupdf_router import run_stage4
-            router_success, router_critique = run_stage4(pdf_path, png_path)
+            from utils.helpers import clean_and_write
+            clean_and_write(main_tex_path, generated_tex_path, os.path.join(output_dir, "resume.tex"))
         except Exception as e:
-            yield {"status": "warning", "message": f"Failed to rasterize PNG: {str(e)}", "stage": 4}
+            yield {"status": "warning", "message": f"Failed to write clean export resume.tex: {str(e)}", "stage": 2}
 
         if not success:
             critique = compile_critique
             if overflowing_bullets:
                 failing_bullets_to_optimize = overflowing_bullets
             direction = "shorten"
-            state.add_warning(f"Iteration {iteration}: Compiler Critique - {compile_critique}")
-            yield {"status": "warning", "message": f"Stage 3 Compile Issue: {compile_critique}. Retrying...", "stage": 3}
+            tracker.add_warning(f"Iteration {iteration}: Layout/Compile issue - {compile_critique}")
+            yield {"status": "warning", "message": f"Stage 2 Layout Violation: {compile_critique}. Retrying...", "stage": 2}
             continue
 
-        # Stage 4: Page Count Router validation
-        yield {"status": "info", "message": "Stage 4: Checking page boundaries...", "stage": 4}
-        if not router_success:
-            critique = router_critique
-            all_bullets = extract_bullets(latex_content)
-            all_bullets.sort(key=len, reverse=True)
-            failing_bullets_to_optimize = all_bullets[:3]
-            direction = "shorten"
-            state.add_warning(f"Iteration {iteration}: Page Router Issue - {router_critique}")
-            yield {"status": "warning", "message": f"Stage 4 Layout Violation: {router_critique}. Retrying...", "stage": 4}
-            continue
-
-        # Stage 5: Vision Inspection
-        yield {"status": "info", "message": "Stage 5: Sending resume image to Vision model for layout review...", "stage": 5}
+        # Stage 3: Vision Inspection
+        yield {"status": "info", "message": "Stage 3: Sending resume image to Vision model for layout review...", "stage": 3}
         try:
             png_full_path = png_path.replace(".png", "_full.png")
-            accepted, vision_critique = run_stage5(png_full_path, tracker)
+            accepted, vision_critique = run_stage3(png_full_path, tracker)
             if not accepted:
                 critique = vision_critique
                 all_bullets = extract_bullets(latex_content)
@@ -205,39 +170,39 @@ def run_optimization_pipeline(
                     failing_bullets_to_optimize = all_bullets[:3]
                     direction = "shorten"
 
-                state.add_warning(f"Iteration {iteration}: Vision Inspector Critique - {vision_critique}")
-                yield {"status": "warning", "message": f"Stage 5 Visual Spacing Critique: {vision_critique}. Retrying...", "stage": 5}
+                tracker.add_warning(f"Iteration {iteration}: Vision Inspector Critique - {vision_critique}")
+                yield {"status": "warning", "message": f"Stage 3 Visual Spacing Critique: {vision_critique}. Retrying...", "stage": 3}
                 continue
             else:
                 yield {
                     "status": "success",
-                    "message": f"Stage 5 Complete. Resume Accepted! Spacing and margins are perfectly balanced.\nCritique details: {vision_critique}",
-                    "stage": 5
+                    "message": f"Stage 3 Complete. Resume Accepted! Spacing and margins are perfectly balanced.\nCritique details: {vision_critique}",
+                    "stage": 3
                 }
                 break
         except Exception as e:
-            yield {"status": "error", "message": f"Stage 5 Vision API call failed: {str(e)}", "stage": 5}
+            yield {"status": "error", "message": f"Stage 3 Vision API call failed: {str(e)}", "stage": 3}
             return
 
-    # Clean up resources/generated_data.tex in-place to remove any \validatedbullet commands for clean source access
+    # Clean up resources/generated_data.tex in-place to remove debug helper macros
     try:
-        from utils.latex_cleaner import clean_generated_file_in_place
+        from utils.helpers import clean_generated_file_in_place
         clean_generated_file_in_place(generated_tex_path)
     except Exception as e:
-        state.add_warning(f"Failed to clean resources/generated_data.tex: {str(e)}")
-
+        tracker.add_warning(f"Failed to clean resources/generated_data.tex: {str(e)}")
+    
     # Check if we exited loop due to max iterations
     from utils.config import MAX_ITERATIONS
-    if state.iteration >= MAX_ITERATIONS and critique and not critique.startswith("STATUS: ACCEPTED"):
+    if tracker.iteration >= MAX_ITERATIONS and critique and not critique.startswith("STATUS: ACCEPTED"):
         yield {
             "status": "warning",
             "message": f"Auto-correcting pipeline reached the maximum of {MAX_ITERATIONS} iterations without full visual acceptance. Returning best-effort output.",
-            "stage": 5
+            "stage": 3
         }
     
     yield {
         "status": "complete",
         "message": "Resume compilation pipeline executed fully.",
         "telemetry": tracker.get_telemetry(),
-        "warnings": state.warnings
+        "warnings": tracker.warnings
     }

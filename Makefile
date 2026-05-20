@@ -15,7 +15,7 @@ run:
 
 compile:
 	mkdir -p output
-	python utils/latex_cleaner.py
+	python -c "from utils.helpers import clean_and_write; clean_and_write('resources/resume.tex', 'resources/generated_data.tex', 'output/resume.tex')"
 	xelatex -interaction=nonstopmode -output-directory=output resources/resume.tex
 
 clean:

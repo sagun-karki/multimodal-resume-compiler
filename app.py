@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # Load API keys from .env if present
 load_dotenv()
 
-from utils.token_tracker import TokenTracker
+from utils.context import PipelineContext
 from stages.orchestrator import run_optimization_pipeline
 
 app = Flask(__name__)
@@ -34,13 +34,10 @@ png_file = os.path.join(OUTPUT_DIR, "resume.png")
 if not os.path.exists(pdf_file) or not os.path.exists(png_file):
     print("[app.py] Initial resume PDF or PNG not found. Compiling default version...")
     try:
-        from stages.stage3_latex_compiler import run_stage3
-        from stages.stage4_pymupdf_router import run_stage4
-        # Compile resume
-        success, err, _ = run_stage3(MAIN_TEX_PATH, OUTPUT_DIR)
+        from stages.stage2_pdf_manager import run_stage2
+        # Compile resume and rasterize
+        success, err, _ = run_stage2(MAIN_TEX_PATH, OUTPUT_DIR)
         if success:
-            # Rasterize to PNG
-            run_stage4(pdf_file, png_file)
             print("[app.py] Initial compilation successful.")
         else:
             print(f"[app.py] Initial compilation failed: {err}")
@@ -110,7 +107,7 @@ def compile_stream():
             }) + "\n\n"
         return Response(error_stream(), mimetype="text/event-stream")
 
-    tracker = TokenTracker()
+    tracker = PipelineContext()
 
     def event_stream():
         generator = run_optimization_pipeline(

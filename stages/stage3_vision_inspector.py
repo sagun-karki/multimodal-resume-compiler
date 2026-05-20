@@ -2,12 +2,12 @@ import os
 from PIL import Image
 import google.generativeai as genai
 from utils.config import VISION_MODEL
-from utils.token_tracker import TokenTracker
+from utils.context import PipelineContext
 from utils.helpers import get_api_key, track_tokens
 
-def run_stage5(png_image_path: str, tracker: TokenTracker) -> tuple[bool, str]:
+def run_stage3(png_image_path: str, tracker: PipelineContext) -> tuple[bool, str]:
     """
-    Stage 5: Vision Feedback Loop & Inspector
+    Stage 3: Vision Feedback Loop & Inspector
     Evaluates the visual layouts, margins, and space utilisation of the compiled resume.
     Identifies empty voids at the bottom (EMPTY_BOTTOM) or visual overflows (OVERFLOW).
     

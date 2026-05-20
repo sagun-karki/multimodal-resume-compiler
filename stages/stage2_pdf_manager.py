@@ -1,21 +1,27 @@
 import os
+import re
 import subprocess
+import shutil
+import fitz  # PyMuPDF
+from PIL import Image, ImageChops
 
-def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str]]:
+def run_stage2(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str]]:
     """
-    Stage 3: Headless XeLaTeX Compiler
-    Compiles the LaTeX source file and parses compile logs for errors or horizontal line overflows.
+    Stage 2: Headless XeLaTeX Compiler & Page-Count Router/Rasterizer
+    Compiles LaTeX source, checks logs for syntax errors or overflows, 
+    verifies page counts, and rasterizes output to PNG.
     
-    Returns: (success_status, critique_message, overflowing_bullets)
+    Returns: (success_status, critique_message, failing_bullets)
     """
     os.makedirs(output_dir, exist_ok=True)
+    pdf_path = os.path.join(output_dir, "resume.pdf")
+    png_path = os.path.join(output_dir, "resume.png")
     
-    # Read main_tex_path and dynamically inject the \validatedbullet macro definition
+    # 1. Read main_tex_path and dynamically inject the \validatedbullet macro definition
     with open(main_tex_path, "r", encoding="utf-8") as f:
         main_content = f.read()
 
     # Inline any \input{...} statements by copying the referenced file's contents inline
-    import re
     def replace_input_match(match):
         rel_path = match.group(1).strip()
         base_dir = os.path.dirname(main_tex_path)
@@ -64,7 +70,7 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
     with open(compile_tex_path, "w", encoding="utf-8") as f:
         f.write(compile_content)
 
-    # Run xelatex compilation subprocess
+    # 2. Run xelatex compilation subprocess
     cmd = [
         "xelatex",
         "-interaction=nonstopmode",
@@ -84,14 +90,12 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
         return False, "STATUS: COMPILATION_FAILED\nCRITIQUE: XeLaTeX compilation timed out (exceeded 30 seconds).", []
     
     # Copy log and pdf outputs from resume_compile to resume
-    import shutil
     compile_log = os.path.join(output_dir, "resume_compile.log")
     log_path = os.path.join(output_dir, "resume.log")
     if os.path.exists(compile_log):
         shutil.copy(compile_log, log_path)
         
     compile_pdf = os.path.join(output_dir, "resume_compile.pdf")
-    pdf_path = os.path.join(output_dir, "resume.pdf")
     if os.path.exists(compile_pdf):
         shutil.copy(compile_pdf, pdf_path)
     
@@ -104,12 +108,12 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
 
     # Check for critical TeX error markers
     if result.returncode != 0 or "!" in log_content:
-        # Extract the line containing the error
         error_lines = [line for line in log_content.splitlines() if line.startswith("!")]
         critique = "STATUS: COMPILATION_FAILED\nCRITIQUE: LaTeX compilation syntax error:\n"
         critique += "\n".join(error_lines[:3])
         return False, critique, []
 
+    # 3. Parse geometric/typographic metric warnings from logs
     overflowing_bullets = []
     orphan_bullets = []
     skill_overflow_bullets = []
@@ -132,6 +136,72 @@ def run_stage3(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
             if bullet_text and bullet_text not in skill_overflow_bullets:
                 skill_overflow_bullets.append(bullet_text)
 
+    # 4. Rasterize compiled PDF using PyMuPDF (so UI is updated even if there are overflows)
+    if os.path.exists(pdf_path):
+        try:
+            doc = fitz.open(pdf_path)
+            page_count = doc.page_count
+            zoom = 2.0
+            mat = fitz.Matrix(zoom, zoom)
+            full_png_path = png_path.replace(".png", "_full.png")
+            
+            if page_count == 1:
+                pix = doc[0].get_pixmap(matrix=mat)
+                pix.save(full_png_path)
+            else:
+                rect = doc[0].rect
+                tall_doc = fitz.open()
+                tall_page = tall_doc.new_page(width=rect.width, height=rect.height * page_count)
+                
+                y_offset = 0
+                for i in range(page_count):
+                    target_rect = fitz.Rect(0, y_offset, rect.width, y_offset + rect.height)
+                    tall_page.show_pdf_page(target_rect, doc, i)
+                    y_offset += rect.height
+                    
+                pix = tall_page.get_pixmap(matrix=mat)
+                pix.save(full_png_path)
+                tall_doc.close()
+                
+            # Crop margins to fit content bounding box
+            with Image.open(full_png_path) as img:
+                if img.mode not in ("RGB", "RGBA"):
+                    img = img.convert("RGB")
+                bg = Image.new("RGB", img.size, (255, 255, 255))
+                diff = ImageChops.difference(img.convert("RGB"), bg)
+                bbox = diff.getbbox()
+                if bbox:
+                    padding = 20
+                    left = max(0, bbox[0] - padding)
+                    top = max(0, bbox[1] - padding)
+                    right = min(img.width, bbox[2] + padding)
+                    bottom = min(img.height, bbox[3] + padding)
+                    cropped_img = img.crop((left, top, right, bottom))
+                    cropped_img.save(png_path)
+                else:
+                    img.save(png_path)
+            
+            doc.close()
+            
+            # Check strictly for single-page constraint violation
+            if page_count != 1:
+                critique = (
+                    f"STATUS: OVERFLOW\n"
+                    f"CRITIQUE: Page count boundary violation! The generated resume is {page_count} pages long, "
+                    f"violating the strict single-page (1 page) layout constraint. The text generator must reduce "
+                    f"content length or bullet descriptions to fit the single-page layout."
+                )
+                from utils.helpers import extract_bullets
+                all_bullets = extract_bullets(main_content)
+                all_bullets.sort(key=len, reverse=True)
+                return False, critique, all_bullets[:3]
+                
+        except Exception as e:
+            return False, f"STATUS: RASTERIZE_ERROR\nCRITIQUE: Failed to rasterize compiled PDF: {str(e)}", []
+    else:
+        return False, "STATUS: FILE_ERROR\nCRITIQUE: Compiled PDF file was not generated by XeLaTeX.", []
+
+    # 5. Handle formatting metric issues
     failing_bullets = []
     critique_parts = []
     

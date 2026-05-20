@@ -2,10 +2,10 @@ import json
 import os
 import google.generativeai as genai
 from utils.config import TEXT_MODEL
-from utils.token_tracker import TokenTracker
+from utils.context import PipelineContext
 from utils.helpers import get_api_key, track_tokens
 
-def run_stage0(profile_path: str, jd_path: str, tracker: TokenTracker) -> dict:
+def run_stage0(profile_path: str, jd_path: str, tracker: PipelineContext) -> dict:
     """
     Stage 0: Semantic Gap Analyzer
     Compares the master user profile with the target job description to compute a

@@ -4,8 +4,19 @@ import json
 import jinja2
 import google.generativeai as genai
 from utils.config import TEXT_MODEL
-from utils.token_tracker import TokenTracker
+from utils.context import PipelineContext
 from utils.helpers import get_api_key, track_tokens, extract_bullets
+
+def sanitize_latex_chars(latex_content: str) -> str:
+    """Escape raw special characters like &, %, # if they are not already escaped."""
+    # Escape & (match any & not preceded by a backslash)
+    latex_content = re.sub(r'(?<!\\)&', r'\\&', latex_content)
+    # Escape % (match any % not preceded by a backslash)
+    latex_content = re.sub(r'(?<!\\)%', r'\\%', latex_content)
+    # Escape # (match any # not preceded by a backslash)
+    latex_content = re.sub(r'(?<!\\)#', r'\\#', latex_content)
+    return latex_content
+
 
 def render_resume_template(resume_json: dict) -> str:
     """Renders the LaTeX body using Jinja2."""
@@ -14,7 +25,7 @@ def render_resume_template(resume_json: dict) -> str:
     template = env.get_template("body.tex.j2")
     return template.render(**resume_json)
 
-def optimize_single_bullet(bullet: str, direction: str, gap_report: dict, tracker: TokenTracker) -> str:
+def optimize_single_bullet(bullet: str, direction: str, gap_report: dict, tracker: PipelineContext) -> str:
     """
     Surgically re-writes a single bullet point to be shorter or longer.
     """
@@ -78,7 +89,7 @@ def run_stage1(
     jd_path: str,
     gap_report: dict,
     critique: str,
-    tracker: TokenTracker,
+    tracker: PipelineContext,
     previous_json: dict = None,
     failing_bullets: list[str] = None,
     direction: str = "shorten"
@@ -98,7 +109,7 @@ def run_stage1(
             _replace_bullet_in_json(updated_json, old_bullet, new_bullet)
         
         latex_content = render_resume_template(updated_json)
-        return latex_content, updated_json
+        return sanitize_latex_chars(latex_content), updated_json
 
     # CASE B: Full Initial Generation
     api_key = get_api_key()
@@ -204,4 +215,4 @@ def run_stage1(
     # Track tokens
     track_tokens(response, tracker)
 
-    return latex_content, resume_json
+    return sanitize_latex_chars(latex_content), resume_json

@@ -8,22 +8,24 @@ The system detects visual and typographic layout issues (like orphan bullet poin
 
 ```mermaid
 graph TD
-    A[Job Description & User Profile] --> B(Stage 1: Text Generation)
-    B --> C(Stage 2: LaTeX Compilation)
-    C --> D(Stage 3: PDF Processing)
-    D --> E{Stage 4: Layout Router}
+    classDef default fill:#1E293B,stroke:#475569,stroke-width:2px,color:#F8FAFC;
+    classDef startNode fill:#0F766E,stroke:#14B8A6,stroke-width:2px,color:#F0FDFA;
+    classDef stageNode fill:#0369A1,stroke:#0EA5E9,stroke-width:2px,color:#F0F9FF;
+    classDef decisionNode fill:#B45309,stroke:#F59E0B,stroke-width:2px,color:#FEF3C7;
+    classDef successNode fill:#15803D,stroke:#22C55E,stroke-width:2px,color:#F0FDF4;
+    classDef failNode fill:#B91C1C,stroke:#EF4444,stroke-width:2px,color:#FEF2F2;
+
+    A[Job Description & User Profile]:::startNode --> B(Stage 0: Closeness Analyzer):::stageNode
+    B --> C(Stage 1: Text Generator):::stageNode
+    C --> D(Stage 2: PDF Manager & Router):::stageNode
     
-    E -->|Layout/Orphan Errors| F(Stage 6: Auto-Correction)
-    E -->|Clean Layout| G{Stage 5: Vision Inspection}
+    D -->|Layout/Orphan/Overflow Errors| E(Auto-Correction State):::failNode
+    D -->|Single Page OK| F{Stage 3: Vision Inspector}:::decisionNode
     
-    G -->|Spacing/Margin Errors| F
-    F -->|Lengthen/Shorten Feedback| B
+    F -->|Spacing/Margin/Skill Errors| E
+    E -->|Feedback Loop| C
     
-    G -->|Accepted Layout| H([Final Output: resume.pdf & resume.tex])
-    
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style H fill:#bbf,stroke:#333,stroke-width:2px
-    style F fill:#fbb,stroke:#333,stroke-width:2px
+    F -->|Accepted Layout| G([Final resume.pdf & resume.tex]):::successNode
 ```
 
 ## How to Run
