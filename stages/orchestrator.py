@@ -31,6 +31,7 @@ def run_optimization_pipeline(
     # --- Stage 0: Semantic Gap Analyzer ---
     if action in ("all", "analyze"):
         yield {"status": "info", "message": "Initiating Stage 0: Semantic Gap Analyzer...", "stage": 0}
+        yield {"status": "info", "message": "Stage 0: Sending user profile & job description to Gemini (waiting for LLM response)...", "stage": 0}
         try:
             gap_report = run_stage0(profile_path, jd_path, tracker)
             with open(gap_report_path, "w", encoding="utf-8") as f:
@@ -58,6 +59,7 @@ def run_optimization_pipeline(
         
         if not gap_report:
             yield {"status": "info", "message": "No cached gap report found. Running Stage 0 analysis first...", "stage": 0}
+            yield {"status": "info", "message": "Stage 0: Sending user profile & job description to Gemini (waiting for LLM response)...", "stage": 0}
             try:
                 gap_report = run_stage0(profile_path, jd_path, tracker)
                 with open(gap_report_path, "w", encoding="utf-8") as f:
@@ -95,6 +97,7 @@ def run_optimization_pipeline(
 
         # Stage 1: Text Generation
         yield {"status": "info", "message": f"Stage 1: Generating tailored LaTeX content (Iteration {iteration})...", "stage": 1}
+        yield {"status": "info", "message": f"Stage 1: Sending tailored prompt payload to Gemini (waiting for LLM response)...", "stage": 1}
         try:
             latex_content, resume_json = run_stage1(
                 profile_path,
@@ -134,6 +137,7 @@ def run_optimization_pipeline(
 
         # Stage 2: XeLaTeX Compiler & Page Boundary Validation
         yield {"status": "info", "message": "Stage 2: Compiling document with XeLaTeX & validating layout...", "stage": 2}
+        yield {"status": "info", "message": "Stage 2: Running XeLaTeX compilation subprocess & generating PDF...", "stage": 2}
         success, compile_critique, overflowing_bullets = run_stage2(main_tex_path, output_dir)
         
         # Merge and write the clean final resume.tex to output_dir
@@ -154,6 +158,7 @@ def run_optimization_pipeline(
 
         # Stage 3: Vision Inspection
         yield {"status": "info", "message": "Stage 3: Sending resume image to Vision model for layout review...", "stage": 3}
+        yield {"status": "info", "message": "Stage 3: Sending rasterized layout image to Gemini Vision API (waiting for LLM response)...", "stage": 3}
         try:
             png_full_path = png_path.replace(".png", "_full.png")
             accepted, vision_critique = run_stage3(png_full_path, tracker)
