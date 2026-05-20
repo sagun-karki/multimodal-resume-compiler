@@ -1,4 +1,81 @@
 let eventSource = null;
+let chartKeywords = null;
+let chartTokens = null;
+
+function renderKeywordChart(matchingCount, gapsCount) {
+    const ctx = document.getElementById('chart-keywords').getContext('2d');
+    if (chartKeywords) chartKeywords.destroy();
+    
+    chartKeywords = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Target Active', 'Target Inactive'],
+            datasets: [{
+                data: [matchingCount, gapsCount],
+                backgroundColor: ['rgba(20, 184, 166, 0.75)', 'rgba(255, 255, 255, 0.05)'],
+                borderColor: '#141414',
+                borderWidth: 1.5,
+                hoverBackgroundColor: ['rgba(20, 184, 166, 0.9)', 'rgba(255, 255, 255, 0.1)']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: '#888888',
+                        boxWidth: 8,
+                        padding: 6,
+                        font: {
+                            family: 'Fira Code',
+                            size: 8
+                        }
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
+}
+
+function renderTokenChart(inputTokens, outputTokens) {
+    const ctx = document.getElementById('chart-tokens').getContext('2d');
+    if (chartTokens) chartTokens.destroy();
+    
+    chartTokens = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Input', 'Output'],
+            datasets: [{
+                data: [inputTokens, outputTokens],
+                backgroundColor: ['rgba(84, 200, 255, 0.7)', 'rgba(81, 207, 102, 0.7)'],
+                borderColor: '#141414',
+                borderWidth: 1.5,
+                hoverBackgroundColor: ['rgba(84, 200, 255, 0.9)', 'rgba(81, 207, 102, 0.9)']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: '#888888',
+                        boxWidth: 8,
+                        padding: 6,
+                        font: {
+                            family: 'Fira Code',
+                            size: 8
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
 
 function switchTab(tab) {
     document.getElementById('tab-job').classList.remove('active');
@@ -136,11 +213,21 @@ async function runPipeline(action) {
         if (data.status === 'warning') logType = 'SYS';
 
         addLog(data.message, logType);
+
+        if (data.telemetry) {
+            renderTokenChart(data.telemetry.input_tokens || 0, data.telemetry.output_tokens || 0);
+        }
         
         if (data.status === 'success' && data.stage === 0 && data.gap_report) {
             const report = data.gap_report;
             document.getElementById('diagnostic-container').style.display = 'block';
             document.getElementById('diagnostic-score').innerText = `${report.closeness_score}% MATCH`;
+            
+            // Show charts container
+            document.getElementById('diagnostic-charts').style.display = 'grid';
+            const matchedCount = (report.matching_strengths || []).length;
+            const gapsCount = (report.critical_gaps || []).length;
+            renderKeywordChart(matchedCount, gapsCount);
             
             // Render Target Keyword Pills
             const pillsContainer = document.getElementById('diagnostic-pills');
@@ -180,6 +267,11 @@ async function runPipeline(action) {
                             window.activeKeywords.add(item);
                             updatePillStyle(btn, true);
                         }
+                        
+                        // Update matching chart dynamically as pills are toggled
+                        const activeCount = window.activeKeywords.size;
+                        const inactiveCount = keywords.length - activeCount;
+                        renderKeywordChart(activeCount, inactiveCount);
                     };
                     pillsContainer.appendChild(btn);
                 });
