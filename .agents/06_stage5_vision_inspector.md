@@ -1,18 +1,19 @@
-# STAGE 5: VISION GRID INSPECTOR
+# VISUAL AUDITOR AGENT (`agents/visual_auditor.py`)
 
 ## Purpose
-Perform a multimodal layout assessment to evaluate macro vertical margins, grid alignments, and density balances.
+Examine compiled resume page images using Multimodal Vision models to review bottom spacing margins, grid alignment, section padding, and balance.
 
-## Implementation
-- Load the rasterized PNG bytes from Stage 4.
-- Send the PNG to a Multimodal Vision model (e.g. `gpt-4o`).
-- Prompt the model to evaluate bottom spacing, margin boundaries, and sections for visual aesthetics.
+## Audit Workflow
+- Loads the rasterized resume page PNG image (`output/resume_full.png`).
+- Sends the image to the Gemini vision model with a custom audit prompt.
+- Instructs the model to return a structured visual review of the layout:
+  - Is the bottom margin too empty? (Less than 0.5 inches of text from the page bottom is fine, but more than 1.5 inches of blank whitespace triggers a correction).
+  - Are there overlapping text strings or section breaks?
+  - Are there orphan headings?
 
-## Strict Status Returns
-Enforce a clear status outcome to drive the state machine:
-- `STATUS: PERFECT`
-  The layout looks balanced. Text margins are professional, and content naturally reaches within 0.5 to 1.25 inches of the bottom page line.
-- `STATUS: EMPTY_BOTTOM`
-  The content is too sparse, leaving an empty white void greater than 1.5 inches at the bottom of the page.
-- `STATUS: OVERFLOW`
-  (Usually pre-empted by Stage 4, but used here to catch visual text collisions or overlapping section lines).
+## Feedback Outputs
+- **`STATUS: ACCEPTED`**: The layout is visually balanced and fits the single-page expectation.
+- **`STATUS: OVERFLOW`**: Page layout overflows boundaries. Triggers compression.
+- **`STATUS: EMPTY_BOTTOM`**: Excessive blank whitespace at the bottom. Triggers expansion.
+- **`STATUS: REJECTED`**: Layout issues detected. Triggers corrections.
+- The returned textual critique is passed back to the `CoordinatorAgent` to guide the writer in the next loop iteration.
