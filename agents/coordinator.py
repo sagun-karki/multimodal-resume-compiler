@@ -32,7 +32,7 @@ class CoordinatorAgent:
         Yields status dictionaries for real-time progress logging in the UI.
         """
         if is_cancelled and is_cancelled():
-            yield {"status": "error", "message": "Pipeline cancelled by user.", "stage": 0}
+            yield {"status": "error", "event": "pipeline.cancelled", "message": "Pipeline cancelled by user.", "stage": 0}
             return
 
         gap_report_path = os.path.join(output_dir, "gap_report.json")
@@ -40,7 +40,7 @@ class CoordinatorAgent:
 
         # --- Phase 1: ATS Analyzer Agent (Gap Analysis) ---
         if action in ("all", "analyze"):
-            yield {"status": "info", "message": "[ATS Analyzer Agent] Comparing user profile against job description...", "stage": 0}
+            yield {"status": "info", "event": "ats.start", "message": "[ATS Analyzer Agent] Comparing user profile against job description...", "stage": 0}
             try:
                 with open(profile_path, "r", encoding="utf-8") as f:
                     profile_content = f.read()
@@ -55,11 +55,11 @@ class CoordinatorAgent:
                     "status": "success",
                     "message": f"[ATS Analyzer Agent] Gap analysis complete. Closeness Score: {gap_report.get('closeness_score')}%",
                     "gap_report": gap_report,
-                    "stage": 0,
+                    "stage": 0, "event": "ats.complete",
                     "telemetry": self.tracker.get_telemetry()
                 }
                 if action == "analyze":
-                    yield {"status": "complete", "message": "Analysis phase complete.", "stage": 0, "gap_report": gap_report, "telemetry": self.tracker.get_telemetry()}
+                    yield {"status": "complete", "event": "analysis.complete", "message": "Analysis phase complete.", "stage": 0, "gap_report": gap_report, "telemetry": self.tracker.get_telemetry()}
                     return
             except Exception as e:
                 yield {"status": "error", "message": f"[ATS Analyzer Agent] Failed: {str(e)}", "stage": 0}
