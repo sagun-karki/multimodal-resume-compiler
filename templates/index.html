@@ -12,22 +12,16 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-
-    <header>
-        <div class="header-left">
-            <span class="logo-text">COMPILER // V1.0</span>
-            <span class="status-badge">STABLE_STATE</span>
-        </div>
-        <div class="header-right">
-            <div class="format-toggle">
-                <button class="format-btn active" id="btn-pdf" onclick="switchFormat('pdf')">PDF</button>
-                <button class="format-btn" id="btn-png" onclick="switchFormat('png')">PNG</button>
-            </div>
-        </div>
-    </header>
-
     <main>
         <section class="left-panel">
+            <div class="top-strip">
+                <span class="logo-text">COMPILER // V1.0</span>
+                <span class="status-badge">STABLE_STATE</span>
+                <div class="format-toggle">
+                    <button class="format-btn active" id="btn-pdf" onclick="switchFormat('pdf')">PDF</button>
+                    <button class="format-btn" id="btn-png" onclick="switchFormat('png')">PNG</button>
+                </div>
+            </div>
             <div class="tabs">
                 <button class="tab-btn active" id="tab-job" onclick="switchTab('job')">&gt;_ JOB_SPECIFICATION</button>
                 <button class="tab-btn" id="tab-profile" onclick="switchTab('profile')">&gt;_ PROFILE_MARKDOWN</button>

@@ -1,6 +1,14 @@
 let eventSource = null;
 let chartKeywords = null;
 let chartTokens = null;
+const sectionIdMap = new Map();
+
+function toSafeSectionId(name) {
+    return String(name || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "section";
+}
 
 function renderKeywordChart(matchingCount, gapsCount) {
     const ctx = document.getElementById('chart-keywords').getContext('2d');
@@ -197,7 +205,9 @@ async function runPipeline(action) {
         }
         if (window.activeSections) {
             const allCheckboxes = Array.from(document.querySelectorAll("[id^='chk-sec-']"));
-            const allSections = allCheckboxes.map(el => el.id.replace("chk-sec-", ""));
+            const allSections = allCheckboxes
+                .map((el) => sectionIdMap.get(el.id))
+                .filter(Boolean);
             const skippedSections = allSections.filter(sec => !window.activeSections.has(sec));
             url += `&skipped_sections=${encodeURIComponent(JSON.stringify(skippedSections))}`;
         }
@@ -287,6 +297,8 @@ async function runPipeline(action) {
                 
                 Object.entries(report.sections_analysis).forEach(([secName, secData]) => {
                     window.activeSections.add(secName);
+                    const safeSecId = `chk-sec-${toSafeSectionId(secName)}`;
+                    sectionIdMap.set(safeSecId, secName);
                     
                     const card = document.createElement('div');
                     card.className = 'section-card';
@@ -309,7 +321,7 @@ async function runPipeline(action) {
                                 ${secName}
                             </span>
                             <label style="display: flex; align-items: center; gap: 4px; font-size: 10px; font-family: 'Fira Code', monospace; color: #888; cursor: pointer; user-select: none;">
-                                <input type="checkbox" id="chk-sec-${secName}" checked style="accent-color: #14b8a6; cursor: pointer;">
+                                <input type="checkbox" id="${safeSecId}" checked style="accent-color: #14b8a6; cursor: pointer;">
                                 OPTIMIZE
                             </label>
                         </div>
@@ -320,7 +332,7 @@ async function runPipeline(action) {
                     `;
                     sectionsContainer.appendChild(card);
 
-                    const chk = card.querySelector(`#chk-sec-${secName}`);
+                    const chk = card.querySelector(`#${safeSecId}`);
                     chk.onchange = (e) => {
                         if (e.target.checked) {
                             window.activeSections.add(secName);
@@ -479,4 +491,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-

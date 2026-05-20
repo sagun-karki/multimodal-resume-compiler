@@ -4,6 +4,16 @@ import subprocess
 import shutil
 import fitz  # PyMuPDF
 from PIL import Image, ImageChops
+from utils.config import LATEX_TIMEOUT_SECONDS
+
+
+def _extract_tex_errors(log_content: str) -> list[str]:
+    errors = []
+    for line in log_content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("! "):
+            errors.append(stripped)
+    return errors
 
 def run_stage2(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str]]:
     """
@@ -84,10 +94,10 @@ def run_stage2(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            timeout=30
+            timeout=LATEX_TIMEOUT_SECONDS
         )
     except subprocess.TimeoutExpired:
-        return False, "STATUS: COMPILATION_FAILED\nCRITIQUE: XeLaTeX compilation timed out (exceeded 30 seconds).", []
+        return False, f"STATUS: COMPILATION_FAILED\nCRITIQUE: XeLaTeX compilation timed out (exceeded {LATEX_TIMEOUT_SECONDS} seconds).", []
     
     # Copy log and pdf outputs from resume_compile to resume
     compile_log = os.path.join(output_dir, "resume_compile.log")
@@ -107,10 +117,12 @@ def run_stage2(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
         log_content = f.read()
 
     # Check for critical TeX error markers
-    if result.returncode != 0 or "!" in log_content:
-        error_lines = [line for line in log_content.splitlines() if line.startswith("!")]
+    error_lines = _extract_tex_errors(log_content)
+    if result.returncode != 0 or error_lines:
         critique = "STATUS: COMPILATION_FAILED\nCRITIQUE: LaTeX compilation syntax error:\n"
         critique += "\n".join(error_lines[:3])
+        if not error_lines and result.stderr:
+            critique += result.stderr[:400]
         return False, critique, []
 
     # 3. Parse geometric/typographic metric warnings from logs
