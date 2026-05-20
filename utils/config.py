@@ -1,25 +1,16 @@
-# Configuration variables for the optimization engine
+import os
 
-# Models configuration
-TEXT_MODEL = "gemini-2.5-flash"
-VISION_MODEL = "gemini-2.5-flash"
+TEXT_MODEL = os.getenv("TEXT_MODEL", "gemini-2.5-flash")
+VISION_MODEL = os.getenv("VISION_MODEL", "gemini-2.5-flash")
 
-# API Pricing Coefficients (per 1 Million tokens)
 PRICING = {
-    "text": {
-        "input": 0.075,
-        "output": 0.30
-    },
-    "vision": {
-        "input": 0.075,
-        "output": 0.30
-    }
+    "text": {"input": 0.075, "output": 0.30},
+    "vision": {"input": 0.075, "output": 0.30},
 }
 
-# Execution Constraints
-MAX_ITERATIONS = 2
+MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", "2"))
+LATEX_TIMEOUT_SECONDS = int(os.getenv("LATEX_TIMEOUT_SECONDS", "30"))
 
-# Typography and Layout boundaries
 RISKY_LENGTH_MIN = 90
 RISKY_LENGTH_MAX = 112
 TARGET_PAGE_LIMIT = 1
