@@ -57,4 +57,9 @@ graph TD
 ## Other Commands
 
 - `make compile` - Manually compile the LaTeX resume.
+- `make test` - Run automated tests.
 - `make clean` - Clean up output and build files.
+
+## Notes
+- Cancellation is request-scoped via `run_id` (passed to `/stream` and `/api/cancel`).
+- Default resume compile can be triggered explicitly via `POST /api/compile-default`.
