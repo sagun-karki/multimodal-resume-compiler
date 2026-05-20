@@ -386,3 +386,97 @@ function injectKeyword(term) {
     // Switch to profile tab to show injection
     switchTab('profile');
 }
+
+// --- Panel Resizing Engine ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Left-Right Main Resizer
+    const mainResizer = document.getElementById('main-resizer');
+    const leftPanel = document.querySelector('.left-panel');
+    const rightPanel = document.querySelector('.right-panel');
+    
+    let isResizingH = false;
+    
+    if (mainResizer && leftPanel && rightPanel) {
+        mainResizer.addEventListener('mousedown', (e) => {
+            isResizingH = true;
+            mainResizer.classList.add('active');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            
+            const pdfFrame = document.getElementById('pdf-frame');
+            if (pdfFrame) pdfFrame.style.pointerEvents = 'none';
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizingH) return;
+            
+            const mainElement = document.querySelector('main');
+            if (!mainElement) return;
+            
+            const containerWidth = mainElement.getBoundingClientRect().width;
+            let newLeftWidth = (e.clientX / containerWidth) * 100;
+            
+            // Boundaries constraints
+            if (newLeftWidth < 20) newLeftWidth = 20;
+            if (newLeftWidth > 80) newLeftWidth = 80;
+            
+            leftPanel.style.width = `${newLeftWidth}%`;
+            rightPanel.style.width = `${100 - newLeftWidth}%`;
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (isResizingH) {
+                isResizingH = false;
+                mainResizer.classList.remove('active');
+                document.body.style.cursor = 'default';
+                document.body.style.userSelect = 'auto';
+                
+                const pdfFrame = document.getElementById('pdf-frame');
+                if (pdfFrame) pdfFrame.style.pointerEvents = 'auto';
+            }
+        });
+    }
+
+    // Top-Bottom Terminal Resizer
+    const terminalResizer = document.getElementById('terminal-resizer');
+    const terminal = document.querySelector('.terminal');
+    
+    let isResizingV = false;
+    
+    if (terminalResizer && terminal) {
+        terminalResizer.addEventListener('mousedown', (e) => {
+            isResizingV = true;
+            terminalResizer.classList.add('active');
+            document.body.style.cursor = 'row-resize';
+            document.body.style.userSelect = 'none';
+            
+            const pdfFrame = document.getElementById('pdf-frame');
+            if (pdfFrame) pdfFrame.style.pointerEvents = 'none';
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizingV) return;
+            
+            const leftPanelRect = leftPanel.getBoundingClientRect();
+            const newHeight = leftPanelRect.bottom - e.clientY;
+            
+            // Constraints
+            if (newHeight >= 60 && newHeight <= 450) {
+                terminal.style.height = `${newHeight}px`;
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (isResizingV) {
+                isResizingV = false;
+                terminalResizer.classList.remove('active');
+                document.body.style.cursor = 'default';
+                document.body.style.userSelect = 'auto';
+                
+                const pdfFrame = document.getElementById('pdf-frame');
+                if (pdfFrame) pdfFrame.style.pointerEvents = 'auto';
+            }
+        });
+    }
+});
+

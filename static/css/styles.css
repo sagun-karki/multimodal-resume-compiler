@@ -129,7 +129,6 @@ main {
 
 .left-panel {
     width: 50%;
-    border-right: 1px solid var(--border-color);
     background: var(--bg-panel);
     display: flex;
     flex-direction: column;
@@ -143,6 +142,36 @@ main {
     position: relative;
     padding: 0;
     overflow: hidden;
+}
+
+/* Resize Handles */
+.resize-handle {
+    width: 6px;
+    background: #1e1e1e;
+    cursor: col-resize;
+    z-index: 10;
+    transition: background 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+}
+.resize-handle:hover, .resize-handle.active {
+    background: #14b8a6;
+    box-shadow: 0 0 8px rgba(20, 184, 166, 0.5);
+}
+
+.resize-handle-v {
+    height: 6px;
+    background: #1e1e1e;
+    cursor: row-resize;
+    z-index: 10;
+    transition: background 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+.resize-handle-v:hover, .resize-handle-v.active {
+    background: #14b8a6;
+    box-shadow: 0 0 8px rgba(20, 184, 166, 0.5);
+    border-color: #14b8a6;
 }
 
 /* Tabs */
