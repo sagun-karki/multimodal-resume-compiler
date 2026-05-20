@@ -1,24 +1,32 @@
-# STAGE 0: SEMANTIC GAP ANALYZER
+# ATS ANALYZER AGENT (`agents/ats_analyzer.py`)
 
 ## Purpose
-Run a pre-flight text analysis before compiling any layouts. It establishes the baseline semantic match and creates the structural plan for downstream modifications.
+Run pre-flight text analysis to establish baseline semantic match alignment, identify missing keywords, and produce a gaps report to target.
 
-## Detailed Flow & Logic
-- Compares the raw `user_profile.md` (comprehensive background) against the `job_description.txt` (target requirements).
-- Calls a low-cost text model (e.g. `gpt-4o-mini`) requesting a strictly formatted JSON output.
-- Identifies missing target keywords, domain terminology, and skills that need to be injected.
-- Calculates an initial "closeness score" representing ATS alignment.
+## Implementation Details
+- Declares the `ATSAnalyzerAgent` class inheriting from `BaseAgent`.
+- Compares the `user_profile.md` (comprehensive background) against the `job_description.txt` (target requirements).
+- Leverages the Gemini text model with custom system prompts instructing it to yield a structured JSON analysis.
+- Extracts target keywords, matching strengths, critical gaps, and computes a baseline "closeness score" (from 0% to 100%).
 
 ## Output Schema
-The response must follow this schema exactly:
+The response matches this schema:
 ```json
 {
   "closeness_score": 75,
   "matching_strengths": ["list", "of", "skills"],
   "critical_gaps": ["technologies", "missing"],
-  "target_keywords": ["keywords", "to", "inject"]
+  "target_keywords": ["keywords", "to", "inject"],
+  "sections_analysis": {
+    "section_name": {
+      "recommendation": "recommendation text",
+      "add": ["items", "to", "add"],
+      "remove": ["items", "to", "remove"],
+      "update": ["items", "to", "update"]
+    }
+  }
 }
 ```
 
 ## Downstream Application
-The resulting report is packaged directly into the system prompt for **Stage 1 (Semantic Text Generator)** to inform whether content must be added (to cover gaps) or pruned (prioritizing matching strengths).
+The resulting report is parsed by the `CoordinatorAgent` and loaded into the `ResumeWriterAgent` prompt context, which weaves the keyword recommendations directly into tailored resume sections.

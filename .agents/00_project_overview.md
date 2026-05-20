@@ -1,50 +1,42 @@
 # AGENT SPECIFICATION: AUTONOMOUS MULTIMODAL RESUME BUILDER
 
 ## 1. System Vision & Objective
-You are tasked with building an autonomous, self-healing, layout-aware resume optimization engine. The system takes a comprehensive master markdown profile and a target job description, tailors the content for maximum semantic ATS alignment, and uses a multi-stage feedback loop (including a Vision LLM) to ensure the final output fits perfectly on a single page with consistent, professional typography.
+This repository is an autonomous, layout-aware, self-healing resume optimization engine. It takes a comprehensive master profile (Markdown format) and a target job description, tailors the contents for maximum ATS semantic matching, and runs a class-based multi-agent feedback loop to ensure the final resume compiles to exactly one page with a balanced layout and correct margins.
 
 ### Core Architectural Mandate
-- The LaTeX document geometry, line spacing, margins, and font paddings are **100% static and immutable**. 
-- The agent loop is **FORBIDDEN** from modifying spacing variables (`\vspace`, `\vfill`) or altering margins to fix layout constraints.
-- All spatial and layout problems **MUST** be solved exclusively by dynamically adjusting **content volume and linguistic density** (adding or trimming high-value bullet points).
+- **Immutable Layout**: LaTeX margins, line spacing, font configurations, and vertical spacing are static. 
+- **Content-Driven Layout Corrections**: The agents must **never** modify spacing variables (`\vspace`, `\vfill`) or margins to fix height violations.
+- **Self-Healing Loop**: All spatial and layout constraints must be resolved dynamically by adjusting the text volume and density (e.g., shortening or expanding bullet points) through the cooperative agent feedback loop.
 
 ## 2. Technical Stack
-- **Backend Framework:** Flask (Python 3.11+)
-- **Typesetting Engine:** XeLaTeX (via local system subprocess)
-- **PDF Manipulation & Rasterization:** PyMuPDF (`fitz`)
-- **LLM Orchestration:** OpenAI API (or compatible local endpoint)
-- **Frontend View:** HTML5, Tailwind CSS, JavaScript (Vanilla Fetch API for streaming/SSE updates)
+- **AI Models**: Google Gemini API (via the `google-generativeai` SDK).
+- **Backend Orchestrator**: Flask (Python 3.11+) running local compilation and page routing scripts.
+- **Typesetting Engine**: XeLaTeX (via local subprocess compilation).
+- **PDF Manipulation & Rasterization**: PyMuPDF (`fitz`).
+- **UI Dashboard**: HTML5, Vanilla CSS for maximum styling flexibility and control, JavaScript with Server-Sent Events (SSE) for live agent logs, Chart.js for real-time diagnostics, and custom drag splitters for resizable panel divisions.
 
-## 3. Repository Directory Structure
-The workspace must match this structural schema exactly:
-```text
-python-resume-builder/
-├── .agents/                                  # This agent instruction directory
-├── my-content/                               # Input Context Layer
-│   ├── user_profile.md                       # Comprehensive master data history
-│   └── job_description.txt                   # Target job text block (UI input target)
-├── resources/                                # Static LaTeX Template Layer
-│   ├── awesome-cv.cls                        # Unmodified document stylesheet (locked layout)
-│   ├── resume.tex                            # Root architecture layout (imports generated_data.tex)
-│   └── generated_data.tex                    # Build-target overwritten by Loop (Gitignored)
-├── stages/                                   # Programmatic Processing Layer
-│   ├── __init__.py
-│   ├── stage0_closeness_analyzer.py          # Pre-flight text matching & ATS analysis
-│   ├── stage1_text_generator.py              # Semantic LaTeX macro scaling
-│   ├── stage2_python_sanitizer.py            # String regex cleaning & orphan checks
-│   ├── stage3_latex_compiler.py              # Headless compilation & log parsing
-│   ├── stage4_pymupdf_router.py              # Page count routing & PNG rasterization
-│   └── stage5_vision_inspector.py            # Multi-modal layout balance evaluation
-├── utils/                                    # System Engine Core
-│   ├── __init__.py
-│   ├── token_tracker.py                      # Token calculator and pricing aggregator
-│   └── state_manager.py                      # Loop state machine (hashes, histories)
-├── output/                                   # Compilation Build Targets (Gitignored)
-│   ├── resume.pdf                            # Final physical single-page PDF document
-│   └── resume.log                            # Internal compilation trace log
-├── templates/                                # Flask Web Templates
-│   └── index.html                            # Dual-panel UI canvas
-├── app.py                                    # Flask server & Server-Sent Events (SSE) orchestrator
-├── Makefile                                  # Automation command interface
-└── requirements.txt                          # Dependency configurations
+## 3. Multi-Agent Team Architecture
+The system has been restructured from a rigid procedural pipeline into a robust, class-based **Multi-Agent Collaboration Network**:
+
+```mermaid
+graph TD
+    classDef default fill:#1E293B,stroke:#475569,stroke-width:2px,color:#F8FAFC;
+    classDef startNode fill:#0F766E,stroke:#14B8A6,stroke-width:2px,color:#F0FDFA;
+    classDef agentNode fill:#0369A1,stroke:#0EA5E9,stroke-width:2px,color:#F0F9FF;
+    classDef toolNode fill:#6B21A8,stroke:#A855F7,stroke-width:2px,color:#FAF5FF;
+    classDef successNode fill:#15803D,stroke:#22C55E,stroke-width:2px,color:#F0FDF4;
+
+    A[Job Description & User Profile]:::startNode --> B(ATS Analyzer Agent):::agentNode
+    B --> C(Coordinator Agent):::agentNode
+    C --> D(Resume Writer Agent):::agentNode
+    D -->|Initial/Revised JSON| E(Compiler Tool):::toolNode
+    E -->|Rendered PNG / Compilation Errors| F(Visual Auditor Agent):::agentNode
+    F -->|Accepted Layout| G([Final resume.pdf & resume.tex]):::successNode
+    F -->|Critique / Adjustments| C
 ```
+
+- **Coordinator Agent (`agents/coordinator.py`):** Acts as the supervisor, guiding the optimization flow, handling intermediate variables, and invoking external programmatic tools.
+- **ATS Analyzer Agent (`agents/ats_analyzer.py`):** Scores profile alignment against the job description, detects missing skills, and selects target keywords.
+- **Resume Writer Agent (`agents/resume_writer.py`):** Formats experience blocks, dynamically injects target keywords, and shortens/lengthens bullet points to comply with layout boundaries.
+- **Visual Auditor Agent (`agents/visual_auditor.py`):** Utilizes multimodal vision to review the final spacing, margins, orphan lines, and general visual layout of the rendered page.
+- **Compiler Tool (`stages/stage2_pdf_manager.py`):** Programmatic tool that compiles LaTeX source using XeLaTeX, catches typographic warnings, and generates high-resolution page previews.

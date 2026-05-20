@@ -1,14 +1,16 @@
-# SYSTEM RULES: LOOP ORCHESTRATION & STATE MACHINE
+# COORDINATOR AGENT & LOOP SUPERVISION (`agents/coordinator.py`)
 
-To prevent the autonomous loop from running infinitely, consuming excessive tokens, or hitting feedback plateaus, build the following orchestration rules into `utils/state_manager.py`:
+## Purpose
+Supervise the lifecycle of the optimization runs. The coordinator orchestrates the communication loop between specialized agents (ATS Analyzer, Resume Writer, Visual Auditor) and programmatic tools (Compiler, Router).
 
-## 1. Loop Constraints
-- **Iteration Limit:** Hard cap the execution at a maximum of **5 cycles/attempts**.
-- **Cryptographic Hashing:** Before writing the generated content block to `resources/generated_data.tex`, compute the MD5 hash of the generated text string and append it to a historical list.
-- **Plateau Termination:** If the newly generated text block's MD5 hash matches a hash from a previous iteration, it indicates that the model has plateaued or hit an optimization dead-end. **Terminate immediately** and raise a UI alert.
-
-## 2. Average Pass Expectation
-Due to the dual-stage validation architecture (internal Python sanitization & compiler log checks running locally for micro-checks, and Vision LLM running only for macro balance), most runs should converge in **2 to 3 iterations**:
-- **Pass 1:** Tailoring/ATS gap injection and first compile.
-- **Pass 2:** Visual validation. If perfect, terminate. If empty bottom, trigger expansion pass.
-- **Pass 3:** Density self-healing generation and final verification compilation.
+## Loop Orchestration Rules
+1. **Loop Hard Constraints:**
+   - **Iteration Limit:** Hard cap of **5 iterations** to prevent excessive token use or infinite loops.
+   - **Content-Plateau Detection:** Hashes the generated LaTeX content in each round (using SHA-256 or MD5). If the hash matches a draft from a previous iteration, it indicates that the model has hit a plateau/dead-end. The coordinator aborts the loop immediately to conserve resources and returns the best draft.
+2. **Dynamic Correction Cycles:**
+   - **Phase 1:** Runs `ATSAnalyzerAgent` to build the initial gap report and closeness score.
+   - **Phase 2 (Correction Loop):**
+     - Writer drafts/modifies content.
+     - Compiler compiles LaTeX code and checks for syntax errors or box overflows.
+     - Router checks fit page count. If page count > 1, immediately loops back with shortening commands.
+     - If page count == 1, `VisualAuditorAgent` reviews design spacing. If layout is balanced, accepts and terminates. If empty bottom, loops back with lengthening commands.
