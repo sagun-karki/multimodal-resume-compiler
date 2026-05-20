@@ -8,6 +8,7 @@ load_dotenv()
 
 from utils.token_tracker import TokenTracker
 from stages.orchestrator import run_optimization_pipeline
+from utils.static_analyzer import analyze_resume
 
 app = Flask(__name__)
 
@@ -137,6 +138,23 @@ def serve_output(filename):
     response = send_from_directory(OUTPUT_DIR, filename)
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
+
+
+@app.route("/api/static-analyze", methods=["POST"])
+def static_analyze():
+    """
+    Analyzes the compiled resume PDF for layout and formatting issues.
+    
+    Returns structured JSON with:
+    - pass: Boolean indicating if all critical checks passed
+    - issues: List of issues found
+    - passed_checks: List of checks that passed
+    """
+    pdf_path = os.path.join(OUTPUT_DIR, "resume.pdf")
+    
+    result = analyze_resume(pdf_path)
+    return jsonify(result)
+
 
 if __name__ == "__main__":
     # Start the local development server
