@@ -84,6 +84,35 @@ def _replace_bullet_in_json(resume_json: dict, old_bullet: str, new_bullet: str)
             if honor.strip() == old_bullet.strip():
                 resume_json["honors"][i] = new_bullet
 
+def _is_bullet_in_skipped_section(resume_json: dict, bullet: str, skipped_sections: list[str]) -> bool:
+    if not skipped_sections:
+        return False
+    skipped_lower = [s.lower() for s in skipped_sections]
+    
+    # Check experience
+    if "experience" in skipped_lower:
+        if "experience" in resume_json:
+            for job in resume_json["experience"]:
+                if "bullets" in job:
+                    if any(b.strip() == bullet.strip() for b in job["bullets"]):
+                        return True
+                        
+    # Check projects
+    if "projects" in skipped_lower:
+        if "projects" in resume_json:
+            for project in resume_json["projects"]:
+                if "bullets" in project:
+                    if any(b.strip() == bullet.strip() for b in project["bullets"]):
+                        return True
+                        
+    # Check honors
+    if "honors" in skipped_lower or "awards" in skipped_lower:
+        if "honors" in resume_json:
+            if any(h.strip() == bullet.strip() for h in resume_json["honors"]):
+                return True
+                
+    return False
+
 def run_stage1(
     profile_path: str,
     jd_path: str,
@@ -92,7 +121,8 @@ def run_stage1(
     tracker: PipelineContext,
     previous_json: dict = None,
     failing_bullets: list[str] = None,
-    direction: str = "shorten"
+    direction: str = "shorten",
+    skipped_sections: list[str] = None
 ) -> tuple[str, dict]:
     """
     Stage 1: Semantic Text Generator (with Surgical Bullet Optimization Support)
@@ -105,6 +135,8 @@ def run_stage1(
     if previous_json and failing_bullets:
         updated_json = previous_json
         for old_bullet in failing_bullets:
+            if _is_bullet_in_skipped_section(updated_json, old_bullet, skipped_sections):
+                continue
             new_bullet = optimize_single_bullet(old_bullet, direction, gap_report, tracker)
             _replace_bullet_in_json(updated_json, old_bullet, new_bullet)
         
@@ -171,6 +203,15 @@ def run_stage1(
         "If the layout feedback is EMPTY_BOTTOM, you must pull in unused achievements or projects from the profile to "
         "expand content volume and fill the page grid naturally."
     )
+
+    if skipped_sections:
+        skipped_str = ", ".join(skipped_sections)
+        system_prompt += (
+            f"\n\nSTRICT PRESERVATION CONSTRAINT:\n"
+            f"You are strictly FORBIDDEN from modifying, tailoring, adding, removing, or updating any content in the following sections: {skipped_str}.\n"
+            f"For these sections, you MUST extract and copy the content and details from the USER PROFILE exactly as-is, "
+            f"preserving all original bullet points, dates, descriptions, structure, and details without any changes."
+        )
 
     user_message = (
         f"USER PROFILE:\n{profile_content}\n\n"

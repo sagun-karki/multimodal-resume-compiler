@@ -117,6 +117,14 @@ def compile_stream():
         except Exception:
             selected_keywords = None
 
+    skipped_param = request.args.get("skipped_sections")
+    skipped_sections = None
+    if skipped_param:
+        try:
+            skipped_sections = json.loads(skipped_param)
+        except Exception:
+            skipped_sections = None
+
     def event_stream():
         generator = run_optimization_pipeline(
             profile_path=PROFILE_PATH,
@@ -127,7 +135,8 @@ def compile_stream():
             tracker=tracker,
             is_cancelled=lambda: PIPELINE_CANCELLED,
             action=action,
-            selected_keywords=selected_keywords
+            selected_keywords=selected_keywords,
+            skipped_sections=skipped_sections
         )
         for update in generator:
             yield f"data: {json.dumps(update)}\n\n"

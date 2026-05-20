@@ -16,7 +16,8 @@ def run_optimization_pipeline(
     tracker: PipelineContext,
     is_cancelled=None,
     action: str = "all",
-    selected_keywords: list = None
+    selected_keywords: list = None,
+    skipped_sections: list = None
 ):
     """
     Generator function that runs the 4-stage auto-correcting resume optimization loop.
@@ -112,7 +113,8 @@ def run_optimization_pipeline(
                 tracker,
                 previous_json=resume_json if iteration > 1 else None,
                 failing_bullets=failing_bullets_to_optimize,
-                direction=direction
+                direction=direction,
+                skipped_sections=skipped_sections
             )
             
             # Reset surgical parameters for this iteration's run

@@ -114,8 +114,16 @@ async function runPipeline(action) {
     addLog(action === 'analyze' ? "Executing Stage 0: Gap Analyzer..." : "Executing Auto-Correction Loop...", "SYS");
 
     let url = `/stream?action=${action}`;
-    if (action === 'optimize' && window.activeKeywords) {
-        url += `&keywords=${encodeURIComponent(JSON.stringify(Array.from(window.activeKeywords)))}`;
+    if (action === 'optimize') {
+        if (window.activeKeywords) {
+            url += `&keywords=${encodeURIComponent(JSON.stringify(Array.from(window.activeKeywords)))}`;
+        }
+        if (window.activeSections) {
+            const allCheckboxes = Array.from(document.querySelectorAll("[id^='chk-sec-']"));
+            const allSections = allCheckboxes.map(el => el.id.replace("chk-sec-", ""));
+            const skippedSections = allSections.filter(sec => !window.activeSections.has(sec));
+            url += `&skipped_sections=${encodeURIComponent(JSON.stringify(skippedSections))}`;
+        }
     }
     eventSource = new EventSource(url);
 
@@ -183,10 +191,14 @@ async function runPipeline(action) {
             const sectionsContainer = document.getElementById('diagnostic-sections');
             sectionsContainer.innerHTML = '';
             if (report.sections_analysis) {
+                window.activeSections = window.activeSections || new Set();
+                
                 Object.entries(report.sections_analysis).forEach(([secName, secData]) => {
+                    window.activeSections.add(secName);
+                    
                     const card = document.createElement('div');
                     card.className = 'section-card';
-                    card.style.cssText = "border: 1px solid var(--border-color); background: #1a1a1a; padding: 12px; border-radius: 4px; display: flex; flex-direction: column; gap: 8px;";
+                    card.style.cssText = "border: 1px solid var(--border-color); background: #1a1a1a; padding: 12px; border-radius: 4px; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s;";
                     
                     let bulletHtml = '';
                     if (secData.add && secData.add.length > 0) {
@@ -200,8 +212,14 @@ async function runPipeline(action) {
                     }
 
                     card.innerHTML = `
-                        <div style="font-family: 'Fira Code', monospace; font-size: 11px; font-weight: 700; color: var(--text-main); text-transform: uppercase; border-bottom: 1px solid #2d2d2d; padding-bottom: 4px;">
-                            ${secName}
+                        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2d2d2d; padding-bottom: 4px;">
+                            <span style="font-family: 'Fira Code', monospace; font-size: 11px; font-weight: 700; color: var(--text-main); text-transform: uppercase;">
+                                ${secName}
+                            </span>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 10px; font-family: 'Fira Code', monospace; color: #888; cursor: pointer; user-select: none;">
+                                <input type="checkbox" id="chk-sec-${secName}" checked style="accent-color: #14b8a6; cursor: pointer;">
+                                OPTIMIZE
+                            </label>
                         </div>
                         <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4; margin: 0;">
                             ${secData.recommendation || ''}
@@ -209,6 +227,17 @@ async function runPipeline(action) {
                         ${bulletHtml ? `<div style="display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-family: 'Fira Code', monospace; margin-top: 4px;">${bulletHtml}</div>` : ''}
                     `;
                     sectionsContainer.appendChild(card);
+
+                    const chk = card.querySelector(`#chk-sec-${secName}`);
+                    chk.onchange = (e) => {
+                        if (e.target.checked) {
+                            window.activeSections.add(secName);
+                            card.style.opacity = '1';
+                        } else {
+                            window.activeSections.delete(secName);
+                            card.style.opacity = '0.5';
+                        }
+                    };
                 });
             }
         } else if (data.status === 'error') {
