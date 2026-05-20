@@ -3,6 +3,7 @@ import os
 import google.generativeai as genai
 from utils.config import TEXT_MODEL
 from utils.token_tracker import TokenTracker
+from utils.helpers import get_api_key, track_tokens
 
 def run_stage0(profile_path: str, jd_path: str, tracker: TokenTracker) -> dict:
     """
@@ -10,9 +11,7 @@ def run_stage0(profile_path: str, jd_path: str, tracker: TokenTracker) -> dict:
     Compares the master user profile with the target job description to compute a
     closeness score, match strengths, identify gaps, and select high-priority keywords.
     """
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set in the environment.")
+    api_key = get_api_key()
     genai.configure(api_key=api_key)
 
     # Read input files
@@ -51,11 +50,6 @@ def run_stage0(profile_path: str, jd_path: str, tracker: TokenTracker) -> dict:
     result_data = json.loads(result_text)
 
     # Track tokens
-    in_tokens = 0
-    out_tokens = 0
-    if response.usage_metadata:
-        in_tokens = response.usage_metadata.prompt_token_count
-        out_tokens = response.usage_metadata.candidates_token_count
-    tracker.track("text", in_tokens, out_tokens)
+    track_tokens(response, tracker)
 
     return result_data

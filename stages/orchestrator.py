@@ -2,6 +2,7 @@ import os
 import json
 from utils.state_manager import StateManager
 from utils.token_tracker import TokenTracker
+from utils.helpers import extract_bullets
 from stages.stage0_closeness_analyzer import run_stage0
 from stages.stage1_text_generator import run_stage1
 from stages.stage2_python_sanitizer import run_stage2
@@ -178,7 +179,6 @@ def run_optimization_pipeline(
         yield {"status": "info", "message": "Stage 4: Checking page boundaries...", "stage": 4}
         if not router_success:
             critique = router_critique
-            from stages.stage1_text_generator import extract_bullets
             all_bullets = extract_bullets(latex_content)
             all_bullets.sort(key=len, reverse=True)
             failing_bullets_to_optimize = all_bullets[:3]
@@ -193,7 +193,6 @@ def run_optimization_pipeline(
             accepted, vision_critique = run_stage5(png_path, tracker)
             if not accepted:
                 critique = vision_critique
-                from stages.stage1_text_generator import extract_bullets
                 all_bullets = extract_bullets(latex_content)
                 
                 if "EMPTY_BOTTOM" in vision_critique:

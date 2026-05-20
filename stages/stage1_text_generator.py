@@ -5,29 +5,7 @@ import jinja2
 import google.generativeai as genai
 from utils.config import TEXT_MODEL
 from utils.token_tracker import TokenTracker
-
-def extract_bullets(latex_content: str) -> list[str]:
-    """
-    Parses out the exact content strings inside all \validatedbullet{...} macros.
-    Handles nested curly braces up to arbitrary depths.
-    """
-    bullets = []
-    pattern = r'\\validatedbullet\{'
-    for match in re.finditer(pattern, latex_content):
-        start = match.end()
-        brace_count = 1
-        i = start
-        while i < len(latex_content) and brace_count > 0:
-            if latex_content[i] == '{':
-                brace_count += 1
-            elif latex_content[i] == '}':
-                brace_count -= 1
-            i += 1
-        if brace_count == 0:
-            bullet_text = latex_content[start:i-1]
-            if bullet_text not in bullets:
-                bullets.append(bullet_text)
-    return bullets
+from utils.helpers import get_api_key, track_tokens, extract_bullets
 
 def render_resume_template(resume_json: dict) -> str:
     """Renders the LaTeX body using Jinja2."""
@@ -40,9 +18,7 @@ def optimize_single_bullet(bullet: str, direction: str, gap_report: dict, tracke
     """
     Surgically re-writes a single bullet point to be shorter or longer.
     """
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set in the environment.")
+    api_key = get_api_key()
     genai.configure(api_key=api_key)
 
     system_prompt = (
@@ -74,12 +50,7 @@ def optimize_single_bullet(bullet: str, direction: str, gap_report: dict, tracke
     new_bullet = response.text.strip()
     
     # Track tokens
-    in_tokens = 0
-    out_tokens = 0
-    if response.usage_metadata:
-        in_tokens = response.usage_metadata.prompt_token_count
-        out_tokens = response.usage_metadata.candidates_token_count
-    tracker.track("text", in_tokens, out_tokens)
+    track_tokens(response, tracker)
 
     return new_bullet
 
@@ -130,9 +101,7 @@ def run_stage1(
         return latex_content, updated_json
 
     # CASE B: Full Initial Generation
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set in the environment.")
+    api_key = get_api_key()
     genai.configure(api_key=api_key)
 
     with open(profile_path, "r", encoding="utf-8") as f:
@@ -233,11 +202,6 @@ def run_stage1(
     latex_content = render_resume_template(resume_json)
 
     # Track tokens
-    in_tokens = 0
-    out_tokens = 0
-    if response.usage_metadata:
-        in_tokens = response.usage_metadata.prompt_token_count
-        out_tokens = response.usage_metadata.candidates_token_count
-    tracker.track("text", in_tokens, out_tokens)
+    track_tokens(response, tracker)
 
     return latex_content, resume_json
