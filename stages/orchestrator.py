@@ -190,7 +190,8 @@ def run_optimization_pipeline(
         # Stage 5: Vision Inspection
         yield {"status": "info", "message": "Stage 5: Sending resume image to Vision model for layout review...", "stage": 5}
         try:
-            accepted, vision_critique = run_stage5(png_path, tracker)
+            png_full_path = png_path.replace(".png", "_full.png")
+            accepted, vision_critique = run_stage5(png_full_path, tracker)
             if not accepted:
                 critique = vision_critique
                 all_bullets = extract_bullets(latex_content)
