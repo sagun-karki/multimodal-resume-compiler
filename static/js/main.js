@@ -109,8 +109,6 @@ async function runPipeline(action) {
     if (action === 'analyze') {
         document.getElementById('terminal-logs').innerHTML = '';
         document.getElementById('diagnostic-container').style.display = 'none';
-        document.getElementById('diagnostic-strengths').innerHTML = '';
-        document.getElementById('diagnostic-gaps').innerHTML = '';
     }
     
     addLog(action === 'analyze' ? "Executing Stage 0: Gap Analyzer..." : "Executing Auto-Correction Loop...", "SYS");
