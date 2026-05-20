@@ -15,6 +15,23 @@ function switchTab(tab) {
     }
 }
 
+function switchFormat(format) {
+    document.getElementById('btn-pdf').classList.remove('active');
+    document.getElementById('btn-png').classList.remove('active');
+    document.getElementById('pdf-frame').style.display = 'none';
+    document.getElementById('png-frame').style.display = 'none';
+
+    if (format === 'pdf') {
+        document.getElementById('btn-pdf').classList.add('active');
+        document.getElementById('pdf-frame').style.display = 'block';
+        addLog('Output payload pipeline changed to VECTOR_PDF.', 'RENDERER');
+    } else {
+        document.getElementById('btn-png').classList.add('active');
+        document.getElementById('png-frame').style.display = 'block';
+        addLog('Output payload pipeline changed to RASTER_PNG.', 'RENDERER');
+    }
+}
+
 
 
 function addLog(text, type = 'INFO') {
@@ -146,6 +163,7 @@ async function runPipeline(action) {
             } else {
                 const timestamp = new Date().getTime();
                 document.getElementById('pdf-frame').src = `/output/resume.pdf?t=${timestamp}`;
+                document.getElementById('png-frame').src = `/output/resume.png?t=${timestamp}`;
             }
             eventSource.close();
             endOptimization();

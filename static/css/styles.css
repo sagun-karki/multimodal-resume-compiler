@@ -335,6 +335,10 @@ textarea {
     background: white;
     display: block;
 }
+#png-frame {
+    object-fit: contain;
+    background: var(--bg-canvas);
+}
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
