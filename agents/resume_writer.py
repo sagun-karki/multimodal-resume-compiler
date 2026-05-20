@@ -4,6 +4,7 @@ import jinja2
 from agents.base import BaseAgent
 from utils.config import TEXT_MODEL
 from utils.context import PipelineContext
+from utils.validation import validate_resume_json
 
 def sanitize_latex_chars(latex_content: str) -> str:
     import re
@@ -174,7 +175,7 @@ class ResumeWriterAgent(BaseAgent):
         if json_str.endswith("```"):
             json_str = json_str[:-3]
             
-        resume_json = json.loads(json_str)
+        resume_json = validate_resume_json(json.loads(json_str))
         latex_content = render_resume_template(resume_json)
         return sanitize_latex_chars(latex_content), resume_json
 

@@ -2,6 +2,7 @@ import json
 from agents.base import BaseAgent
 from utils.config import TEXT_MODEL
 from utils.context import PipelineContext
+from utils.validation import validate_gap_report
 
 class ATSAnalyzerAgent(BaseAgent):
     def __init__(self, tracker: PipelineContext):
@@ -42,4 +43,4 @@ class ATSAnalyzerAgent(BaseAgent):
             user_message,
             generation_config={"response_mime_type": "application/json"}
         )
-        return json.loads(response_text)
+        return validate_gap_report(json.loads(response_text))

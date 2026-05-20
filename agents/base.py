@@ -1,4 +1,5 @@
 import google.generativeai as genai
+import time
 from utils.helpers import get_api_key, track_tokens
 from utils.context import PipelineContext
 
@@ -22,10 +23,17 @@ class BaseAgent:
         if generation_config is None:
             generation_config = {"temperature": 0.2}
             
-        response = self.model.generate_content(
-            contents,
-            generation_config=generation_config
-        )
-        
-        track_tokens(response, self.tracker, model_type=model_type)
-        return response.text.strip()
+        last_error = None
+        for attempt in range(3):
+            try:
+                response = self.model.generate_content(
+                    contents,
+                    generation_config=generation_config
+                )
+                track_tokens(response, self.tracker, model_type=model_type)
+                return response.text.strip()
+            except Exception as e:
+                last_error = e
+                if attempt < 2:
+                    time.sleep(0.8 * (2 ** attempt))
+        raise RuntimeError(f"{self.name} model call failed after retries: {last_error}")
