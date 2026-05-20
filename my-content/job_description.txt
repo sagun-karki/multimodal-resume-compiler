@@ -1,0 +1,95 @@
+company-logo
+Global Lending Services LLC
+· 2 hours ago
+Data Scientist
+position
+Greenville, South Carolina
+time
+Full-time
+remote
+Onsite
+seniority
+New Grad, Entry Level
+98%
+STRONG MATCH
+Experience. Level
+100%
+Skill
+100%
+Industry Exp.
+77%
+Global Lending Services LLC is a company dedicated to providing affordable auto financing solutions through advanced analytics and technology. They are seeking a Data Scientist to address critical business challenges by designing effective data science solutions, developing predictive models, and collaborating with business partners to translate insights into actionable strategies.
+Automotive
+Finance
+Financial Services
+check
+H1B Sponsor Likelynote
+
+Insider Connection @Global Lending Services LLC
+turboUnlimited
+Discover valuable connections within the company who might provide insights and potential referrals.
+Get 3x more responses when you reach out via email instead of LinkedIn.
+Beyond your network
+K
+G
+J
+T
+Kathleen Wright, SHRM-CP, PHR & 3 connections
+From your previous company
+from your School
+Find Any Email
+
+Responsibilities
+Understanding business problems and needs to design effective data science solutions
+Gathering data from various sources, cleaning it appropriately, and visualizing it to identify anomalies and patterns
+Developing robust predictive models using suitable modeling techniques
+Generating insights and crafting a cohesive narrative from the data, summarizing analytical results, and presenting them to stakeholders
+Collaborating with business partners to translate models into actionable business strategies
+Working with IT to implement models into IT platforms for automated decision-making
+Monitoring model performance to ensure effectiveness and validity
+Continuously learning new technologies and refining skills daily
+
+Qualification
+check
+Represents the skills you have
+Find out how your skills align with this job's requirements. If anything seems off, you can easily click on the tags to select or unselect skills to reflect your actual expertise.
+
+checkStatistics
+checkData Science
+checkMachine Learning
+checkMultivariate Regression
+checkDecision Trees
+checkStochastic Gradient Boosting
+checkDeep Learning
+checkSQL
+checkPython
+checkR
+checkScikit-learn
+checkStatsmodels
+checkXGBoost
+LightGBM
+checkLarge Dataset Management
+Required
+Strong foundational knowledge in statistics, data science, and machine learning, including techniques such as multivariate regression, decision trees, stochastic gradient boosting, and deep learning
+Proficiency in programming and working with open-source AI/ML languages and tools, including but not limited to SQL, Python, R, scikit-learn, statsmodels, XGBoost, and LightGBM
+Proven experience in managing and analyzing large datasets
+Excellent written and verbal communication skills, with the ability to convey complex ideas in a clear, business-oriented, and user-friendly manner
+Self-motivated with a demonstrated ability to take initiative, identify opportunities for improvement, make actionable recommendations, and see them through to implementation while assessing their effectiveness
+Outstanding interpersonal skills: approachable, tactful, and capable of influencing others, resolving conflicts, exercising sound judgment, maintaining confidentiality, and collaborating with all levels of the organization to build strong cross-functional partnerships
+This is an exempt level position whereby business need will dictate the exact work schedule which should be expected to vary at times. Generally, the days and hours of work are Monday through Friday, 8:30am-5:30pm
+Regular, predictable attendance is required, including in excess of 40 hours per week as business demands dictate
+Evening and weekend work may be required as job duties demand
+The position does not require travel
+Significant portions of daily assignments involve application of manual skills requiring motor coordination in combination with finger dexterity
+Remain in a stationary position up to 100% of the workday
+Be able to perform activities such as: viewing a computer terminal, extensive reading, bending, and kneeling
+
+Benefits
+Competitive base pay and performance bonuses, dependent on role
+Medical, dental, vision, telemedicine, supplemental insurance benefits, long-term and short-term disability
+401K with employer match and 100% immediate vesting
+Paid Time Off (PTO) and paid company holidays to help you balance work and personal life
+Paid Volunteer Time Off (VTO) Annually
+Tuition Reimbursement
+Parental Leave
+Business casual work environment

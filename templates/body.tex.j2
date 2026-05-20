@@ -1,0 +1,50 @@
+{% if skills %}
+\section*{SKILLS}
+\begin{itemize}[leftmargin=0.7em, label={}, itemsep=0pt, parsep=0pt, topsep=0pt]
+{% for category, items in skills.items() %}
+  \validatedskill{\textbf{ {{ category }}:} {{ items | join(', ') }} }
+{% endfor %}
+\end{itemize}
+{% endif %}
+
+{% if experience %}
+\section*{EXPERIENCE}
+{% for job in experience %}
+\textbf{ {{ job.title }} } \hfill {{ job.date }} \\
+\textit{ {{ job.company }} } \hfill \textit{ {{ job.location }} }
+\begin{itemize}
+{% for bullet in job.bullets %}
+  \validatedbullet{ {{ bullet }} }
+{% endfor %}
+\end{itemize}
+{% endfor %}
+{% endif %}
+
+{% if projects %}
+\section*{PROJECTS}
+{% for project in projects %}
+\textbf{ {{ project.name }} | {{ project.technologies }} } \hfill {{ project.date }}
+\begin{itemize}
+{% for bullet in project.bullets %}
+  \validatedbullet{ {{ bullet }} }
+{% endfor %}
+\end{itemize}
+{% endfor %}
+{% endif %}
+
+{% if education %}
+\section*{EDUCATION}
+{% for edu in education %}
+\textbf{ {{ edu.school }} } \hfill {{ edu.date }} \\
+{{ edu.degree }} \hfill \textit{ {{ edu.location }} }
+{% endfor %}
+{% endif %}
+
+{% if honors %}
+\section*{HONORS AND ACTIVITIES}
+\begin{itemize}
+{% for honor in honors %}
+  \validatedbullet{ {{ honor }} }
+{% endfor %}
+\end{itemize}
+{% endif %}
