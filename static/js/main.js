@@ -132,26 +132,54 @@ async function runPipeline(action) {
             document.getElementById('diagnostic-container').style.display = 'block';
             document.getElementById('diagnostic-score').innerText = `${report.closeness_score}% MATCH`;
             
-            const strContainer = document.getElementById('diagnostic-strengths');
-            strContainer.innerHTML = '';
-            if (report.matching_strengths) {
-                report.matching_strengths.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'ats-item-strength';
-                    div.innerText = `+ ${item}`;
-                    strContainer.appendChild(div);
+            // Render Quick Inject Pills
+            const pillsContainer = document.getElementById('diagnostic-pills');
+            const pillsLabel = document.getElementById('diagnostic-pills-label');
+            pillsContainer.innerHTML = '';
+            if (report.critical_gaps && report.critical_gaps.length > 0) {
+                pillsLabel.style.display = 'block';
+                report.critical_gaps.forEach(item => {
+                    const btn = document.createElement('button');
+                    btn.className = 'ats-pill';
+                    btn.style.cssText = "background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.2); color: var(--accent-red); padding: 4px 8px; font-size: 10px; font-family: 'Fira Code', monospace; border-radius: 2px; cursor: pointer; display: flex; align-items: center; gap: 4px;";
+                    btn.innerHTML = `<span>+ ${item}</span><span style="font-size: 8px; opacity: 0.7; background: rgba(255, 107, 107, 0.2); padding: 0 3px;">INJECT</span>`;
+                    btn.onclick = () => injectKeyword(item);
+                    pillsContainer.appendChild(btn);
                 });
+            } else {
+                pillsLabel.style.display = 'none';
             }
 
-            const gapsContainer = document.getElementById('diagnostic-gaps');
-            gapsContainer.innerHTML = '';
-            if (report.critical_gaps) {
-                report.critical_gaps.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'ats-item-gap';
-                    div.innerHTML = `<span>- ${item}</span><span class="ats-inject-label">INJECT</span>`;
-                    div.onclick = () => injectKeyword(item);
-                    gapsContainer.appendChild(div);
+            // Render Section-by-Section Cards
+            const sectionsContainer = document.getElementById('diagnostic-sections');
+            sectionsContainer.innerHTML = '';
+            if (report.sections_analysis) {
+                Object.entries(report.sections_analysis).forEach(([secName, secData]) => {
+                    const card = document.createElement('div');
+                    card.className = 'section-card';
+                    card.style.cssText = "border: 1px solid var(--border-color); background: #1a1a1a; padding: 12px; border-radius: 4px; display: flex; flex-direction: column; gap: 8px;";
+                    
+                    let bulletHtml = '';
+                    if (secData.add && secData.add.length > 0) {
+                        bulletHtml += `<div style="color: var(--accent-green)">+ ADD: ${secData.add.join(', ')}</div>`;
+                    }
+                    if (secData.remove && secData.remove.length > 0) {
+                        bulletHtml += `<div style="color: var(--accent-red)">- REMOVE: ${secData.remove.join(', ')}</div>`;
+                    }
+                    if (secData.update && secData.update.length > 0) {
+                        bulletHtml += `<div style="color: var(--accent-blue)">* UPDATE: ${secData.update.join(', ')}</div>`;
+                    }
+
+                    card.innerHTML = `
+                        <div style="font-family: 'Fira Code', monospace; font-size: 11px; font-weight: 700; color: var(--text-main); text-transform: uppercase; border-bottom: 1px solid #2d2d2d; padding-bottom: 4px;">
+                            ${secName}
+                        </div>
+                        <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4; margin: 0;">
+                            ${secData.recommendation || ''}
+                        </p>
+                        ${bulletHtml ? `<div style="display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-family: 'Fira Code', monospace; margin-top: 4px;">${bulletHtml}</div>` : ''}
+                    `;
+                    sectionsContainer.appendChild(card);
                 });
             }
         } else if (data.status === 'error') {

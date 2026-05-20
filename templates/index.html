@@ -41,19 +41,17 @@
             </div>
 
             <div class="ats-panel" id="diagnostic-container">
-                <div class="ats-header">
+                <div class="ats-header" style="margin-bottom: 8px;">
                     <span class="ats-label">ATS_ANALYSIS</span>
                     <span class="ats-score" id="diagnostic-score">0% MATCH</span>
                 </div>
-                <div class="ats-grid">
-                    <div>
-                        <span class="ats-col-title">VERIFIED_FOUNDRY</span>
-                        <div class="ats-list" id="diagnostic-strengths"></div>
-                    </div>
-                    <div>
-                        <span class="ats-col-title">CRITICAL_GAPS</span>
-                        <div class="ats-list" id="diagnostic-gaps"></div>
-                    </div>
+                
+                <div id="diagnostic-pills-label" class="ats-col-title" style="margin-top: 12px; margin-bottom: 6px; display: none;">QUICK INJECT GAPS:</div>
+                <div id="diagnostic-pills" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;"></div>
+                
+                <div class="ats-col-title" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-bottom: 8px;">SECTION RECOMMENDATIONS:</div>
+                <div id="diagnostic-sections" style="display: flex; flex-direction: column; gap: 12px; max-height: 240px; overflow-y: auto;">
+                    <!-- Dynamic section cards -->
                 </div>
             </div>
 

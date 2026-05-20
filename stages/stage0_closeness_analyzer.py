@@ -22,14 +22,22 @@ def run_stage0(profile_path: str, jd_path: str, tracker: TokenTracker) -> dict:
 
     system_prompt = (
         "You are an expert ATS optimization engine. Compare the user's master profile against the target job description. "
-        "Identify exactly what matches, what critical technologies or experiences are missing, and which high-impact "
-        "keywords must be integrated to maximize resume alignment.\n\n"
+        "Perform a section-by-section analysis of the resume (e.g., Contact Info, Skills, Experience, Projects, Education) and "
+        "identify what needs to be added, removed, or updated for each section to align it with the job description.\n\n"
         "You must respond with a valid JSON object matching this schema exactly without markdown formatting:\n"
         "{\n"
         "  \"closeness_score\": 75,\n"
         "  \"matching_strengths\": [\"list\", \"of\", \"skills\"],\n"
         "  \"critical_gaps\": [\"technologies\", \"missing\"],\n"
-        "  \"target_keywords\": [\"keywords\", \"to\", \"inject\"]\n"
+        "  \"target_keywords\": [\"keywords\", \"to\", \"inject\"],\n"
+        "  \"sections_analysis\": {\n"
+        "    \"SectionName\": {\n"
+        "      \"add\": [\"item to add\"],\n"
+        "      \"remove\": [\"item to remove\"],\n"
+        "      \"update\": [\"item to update/revise\"],\n"
+        "      \"recommendation\": \"overall recommendation/rationale for this section\"\n"
+        "    }\n"
+        "  }\n"
         "}"
     )
 
