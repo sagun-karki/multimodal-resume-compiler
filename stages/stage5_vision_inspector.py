@@ -3,6 +3,7 @@ from PIL import Image
 import google.generativeai as genai
 from utils.config import VISION_MODEL
 from utils.token_tracker import TokenTracker
+from utils.helpers import get_api_key, track_tokens
 
 def run_stage5(png_image_path: str, tracker: TokenTracker) -> tuple[bool, str]:
     """
@@ -15,9 +16,7 @@ def run_stage5(png_image_path: str, tracker: TokenTracker) -> tuple[bool, str]:
     if not os.path.exists(png_image_path):
         return False, "STATUS: FILE_ERROR\nCRITIQUE: PNG rasterized resume was not found."
 
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY must be set in the environment.")
+    api_key = get_api_key()
     genai.configure(api_key=api_key)
 
     # Load image using PIL
@@ -60,12 +59,7 @@ def run_stage5(png_image_path: str, tracker: TokenTracker) -> tuple[bool, str]:
     critique = response.text.strip()
 
     # Track tokens using vision pricing coefficient
-    in_tokens = 0
-    out_tokens = 0
-    if response.usage_metadata:
-        in_tokens = response.usage_metadata.prompt_token_count
-        out_tokens = response.usage_metadata.candidates_token_count
-    tracker.track("vision", in_tokens, out_tokens)
+    track_tokens(response, tracker, model_type="vision")
 
     # Determine status
     accepted = critique.startswith("STATUS: ACCEPTED")

@@ -7,685 +7,81 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <style>
-        :root {
-            --bg-dark: #0b0f19;
-            --card-bg: rgba(20, 26, 42, 0.7);
-            --card-border: rgba(255, 255, 255, 0.08);
-            --accent-primary: #3b82f6; /* Modern Blue */
-            --accent-primary-glow: rgba(59, 130, 246, 0.35);
-            --accent-success: #10b981; /* Emerald */
-            --accent-warning: #f59e0b; /* Amber */
-            --accent-error: #ef4444; /* Rose */
-            --text-main: #f3f4f6;
-            --text-muted: #9ca3af;
-            --sidebar-width: 550px;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            background-image: 
-                radial-gradient(at 10% 20%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
-                radial-gradient(at 90% 80%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
-        }
-
-        /* Sidebar Container */
-        .sidebar {
-            width: var(--sidebar-width);
-            border-right: 1px solid var(--card-border);
-            background: rgba(11, 15, 25, 0.85);
-            backdrop-filter: blur(16px);
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            z-index: 10;
-        }
-
-        /* App Title Header */
-        .sidebar-header {
-            padding: 24px;
-            border-bottom: 1px solid var(--card-border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .sidebar-header h1 {
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #60a5fa, #34d399);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .version-badge {
-            font-size: 10px;
-            background: rgba(59, 130, 246, 0.15);
-            color: var(--accent-primary);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            padding: 2px 8px;
-            border-radius: 9999px;
-            font-weight: 500;
-        }
-
-        /* Scrollable Panels */
-        .sidebar-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        /* Group Editors Card */
-        .editor-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .card-title {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        textarea {
-            width: 100%;
-            height: 160px;
-            background: rgba(10, 12, 20, 0.8);
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
-            color: var(--text-main);
-            padding: 12px;
-            font-family: 'Fira Code', monospace;
-            font-size: 13px;
-            resize: vertical;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        textarea:focus {
-            border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px var(--accent-primary-glow);
-        }
-
-        /* Compile Trigger Section */
-        .control-panel {
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 600;
-            font-size: 15px;
-            padding: 12px 24px;
-            border-radius: 10px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--accent-primary), #2563eb);
-            color: white;
-            flex: 1;
-            box-shadow: 0 4px 14px var(--accent-primary-glow);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px var(--accent-primary-glow);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            flex: 1;
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
-        }
-
-        .btn-success:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
-        }
-
-        .btn-success:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        /* Telemetry Dashboard Grid */
-        .telemetry-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-        }
-
-        .metric-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--card-border);
-            border-radius: 10px;
-            padding: 12px;
-            text-align: center;
-        }
-
-        .metric-label {
-            font-size: 11px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-        }
-
-        .metric-value {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        .metric-value.cost {
-            color: var(--accent-success);
-        }
-
-        /* Terminal Logs Container */
-        .terminal-card {
-            background: #05070c;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 16px;
-            font-family: 'Fira Code', monospace;
-            font-size: 12.5px;
-            height: 240px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
-        }
-
-        .terminal-header {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            margin-bottom: 10px;
-            color: var(--text-muted);
-            font-size: 11px;
-        }
-
-        .terminal-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #ef4444;
-        }
-        .terminal-dot:nth-child(2) { background: #eab308; }
-        .terminal-dot:nth-child(3) { background: #22c55e; }
-
-        .terminal-logs {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            scroll-behavior: smooth;
-        }
-
-        .log-entry {
-            line-height: 1.4;
-        }
-
-        .log-entry.info { color: #9ca3af; }
-        .log-entry.success { color: #10b981; }
-        .log-entry.warning { color: #f59e0b; }
-        .log-entry.error { color: #ef4444; font-weight: 600; }
-
-        /* Canvas Main Display Area */
-        .canvas-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: #0f172a;
-            position: relative;
-        }
-
-        .canvas-header {
-            padding: 18px 24px;
-            background: rgba(15, 23, 42, 0.8);
-            border-bottom: 1px solid var(--card-border);
-            backdrop-filter: blur(8px);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 5;
-        }
-
-        .canvas-title {
-            font-size: 16px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .canvas-pulse {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent-success);
-            box-shadow: 0 0 8px var(--accent-success);
-        }
-
-        .canvas-pulse.running {
-            background: var(--accent-warning);
-            box-shadow: 0 0 8px var(--accent-warning);
-            animation: pulse-animation 1.5s infinite;
-        }
-
-        @keyframes pulse-animation {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-        }
-
-        /* Mode Selector Toggle */
-        .view-toggle {
-            display: flex;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--card-border);
-            padding: 3px;
-            border-radius: 8px;
-        }
-
-        .toggle-btn {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            padding: 6px 14px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.2s;
-        }
-
-        .toggle-btn.active {
-            background: var(--accent-primary);
-            color: white;
-            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
-        }
-
-        /* Frame Containers */
-        .preview-container {
-            flex: 1;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            overflow-y: auto;
-        }
-
-        .resume-frame {
-            width: 100%;
-            height: 100%;
-            border: none;
-            border-radius: 8px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-            background: white;
-        }
-
-        .resume-image {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            border-radius: 8px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-            background: white;
-            display: none;
-        }
-
-        /* Custom Scrollbars */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.05);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
 
-    <!-- Left Monitoring Panel -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <h1>Resume Compiler</h1>
-            <span class="version-badge">Auto-Correcting v1.0</span>
+    <header>
+        <div class="header-left">
+            <span class="logo-text">COMPILER // V1.0</span>
+            <span class="status-badge">STABLE_STATE</span>
         </div>
+        <div class="header-right">
+            <div class="format-toggle">
+                <button class="format-btn active" id="btn-pdf" onclick="switchFormat('pdf')">PDF</button>
+                <button class="format-btn" id="btn-png" onclick="switchFormat('png')">PNG</button>
+            </div>
+        </div>
+    </header>
 
-        <div class="sidebar-content">
-            <!-- Text Editors -->
-            <div class="editor-card">
-                <div class="card-title">
-                    <span>Master User Profile</span>
-                    <span style="font-size: 11px; color: var(--text-muted);">Markdown format</span>
+    <main>
+        <section class="left-panel">
+            <div class="tabs">
+                <button class="tab-btn active" id="tab-job" onclick="switchTab('job')">&gt;_ JOB_SPECIFICATION</button>
+                <button class="tab-btn" id="tab-profile" onclick="switchTab('profile')">&gt;_ PROFILE_MARKDOWN</button>
+            </div>
+
+            <div class="editor-container active" id="editor-job">
+                <textarea id="jd-editor" spellcheck="false">{{ job_description|safe }}</textarea>
+            </div>
+            <div class="editor-container" id="editor-profile">
+                <textarea id="profile-editor" spellcheck="false">{{ profile|safe }}</textarea>
+            </div>
+
+            <div class="ats-panel" id="diagnostic-container">
+                <div class="ats-header" style="margin-bottom: 8px;">
+                    <span class="ats-label">ATS_ANALYSIS</span>
+                    <span class="ats-score" id="diagnostic-score">0% MATCH</span>
                 </div>
-                <textarea id="profile-editor" spellcheck="false">${profile}</textarea>
-
-                <div class="card-title" style="margin-top: 8px;">
-                    <span>Target Job Description</span>
-                </div>
-                <textarea id="jd-editor" spellcheck="false" style="height: 120px;">${job_description}</textarea>
-
-                <!-- Diagnostic Report (Stage 0) -->
-                <div id="diagnostic-container" style="display: none; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--card-border); border-radius: 12px; padding: 16px; margin-top: 8px; font-size: 13px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
-                        <span style="font-weight: 600; color: #60a5fa;">ATS Closeness Diagnostic</span>
-                        <span id="diagnostic-score" style="font-weight: 700; color: var(--accent-success); background: rgba(16, 185, 129, 0.15); padding: 2px 8px; border-radius: 6px;">0% Match</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <div>
-                            <strong style="color: var(--accent-success); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Matching Strengths</strong>
-                            <div id="diagnostic-strengths" style="color: var(--text-muted); font-size: 12px; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px;"></div>
-                        </div>
-                        <div>
-                            <strong style="color: var(--accent-error); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Critical Gaps</strong>
-                            <div id="diagnostic-gaps" style="color: var(--text-muted); font-size: 12px; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px;"></div>
-                        </div>
-                        <div>
-                            <strong style="color: var(--accent-warning); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">Target Keywords to Inject</strong>
-                            <div id="diagnostic-keywords" style="color: var(--text-muted); font-size: 12px; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px;"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="control-panel" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" id="compile-btn" onclick="startAnalysis()" style="flex: 1; min-width: 150px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        Analyze Alignment
-                    </button>
-                    <button class="btn btn-success" id="proceed-btn" onclick="startOptimization()" style="display: none; flex: 1; min-width: 150px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                        Proceed to Optimize
-                    </button>
-                    <button class="btn" id="stop-btn" onclick="stopOptimization()" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; flex: 0 0 auto;" title="Stop optimization">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
-                        Stop
-                    </button>
+                
+                <div id="diagnostic-pills-label" class="ats-col-title" style="margin-top: 12px; margin-bottom: 6px; display: none;">QUICK INJECT GAPS:</div>
+                <div id="diagnostic-pills" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;"></div>
+                
+                <div class="ats-col-title" style="border-top: 1px solid var(--border-color); padding-top: 12px; margin-bottom: 8px;">SECTION RECOMMENDATIONS:</div>
+                <div id="diagnostic-sections" style="display: flex; flex-direction: column; gap: 12px; max-height: 240px; overflow-y: auto;">
+                    <!-- Dynamic section cards -->
                 </div>
             </div>
 
+            <div class="action-bar">
+                <button class="btn btn-primary" id="compile-btn" onclick="startAnalysis()">ANALYZE ALIGNMENT</button>
+                <button class="btn btn-success" id="proceed-btn" onclick="startOptimization()" style="display: none;">PROCEED TO OPTIMIZE</button>
+                <button class="btn btn-danger" id="stop-btn" onclick="stopOptimization()" style="display: none;">[ STOP ]</button>
+            </div>
 
-
-            <!-- Terminal Real-time Logs -->
-            <div class="terminal-card">
-                <div class="terminal-header">
-                    <div class="terminal-dot"></div>
-                    <div class="terminal-dot"></div>
-                    <div class="terminal-dot"></div>
-                    <span style="margin-left: 6px;">Execution Terminal logs</span>
+            <div class="terminal">
+                <div class="terminal-top">
+                    <span class="terminal-label">AGENT_TELEMETRY_LOGS</span>
+                    <button class="terminal-clear" onclick="document.getElementById('terminal-logs').innerHTML = ''">[ CLEAR ]</button>
                 </div>
                 <div class="terminal-logs" id="terminal-logs">
-                    <div class="log-entry info">> Engine idle. Click 'Compile & Optimize' to initiate.</div>
+                    <div class="log-entry">
+                        <span class="log-time">00:00:00</span>
+                        <span class="log-type log-type-sys">SYS</span>
+                        <span>Engine idle. Awaiting command.</span>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <!-- Right Presentation Canvas -->
-    <div class="canvas-area">
-        <div class="canvas-header">
-            <div class="canvas-title">
-                <div class="canvas-pulse" id="canvas-pulse"></div>
-                <span>Render Canvas</span>
-            </div>
-            
-            <div class="view-toggle">
-                <button class="toggle-btn active" id="btn-pdf" onclick="switchView('pdf')">PDF Viewer</button>
-                <button class="toggle-btn" id="btn-png" onclick="switchView('png')">Vision View (PNG)</button>
-            </div>
-        </div>
+        <section class="right-panel">
+            <iframe id="pdf-frame" class="preview-frame" src="/output/resume.pdf"></iframe>
+            <img id="png-frame" class="preview-frame" src="/output/resume.png" alt="Resume PNG Preview" style="display: none;">
+        </section>
+    </main>
 
-        <div class="preview-container">
-            <!-- PDF Viewer -->
-            <iframe class="resume-frame" id="pdf-frame" src="/output/resume.pdf"></iframe>
-            <!-- Rasterized PNG (Vision feed) -->
-            <img class="resume-image" id="png-frame" src="/output/resume.png" alt="Resume PNG Preview">
-        </div>
-    </div>
-
-    <script>
-        let eventSource = null;
-
-        // Render templated variables from backend
-        // Since templates are handled by Flask render_template, we use raw string variables
-        // We've set value in innerHTML using the default templating structure
-        document.getElementById('profile-editor').value = `{{ profile|safe }}`;
-        document.getElementById('jd-editor').value = `{{ job_description|safe }}`;
-
-        function addLog(message, status = 'info') {
-            const container = document.getElementById('terminal-logs');
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${status}`;
-            entry.innerHTML = `> [${new Date().toLocaleTimeString()}] ${message.replace(/\n/g, '<br>')}`;
-            container.appendChild(entry);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function switchView(mode) {
-            const pdfFrame = document.getElementById('pdf-frame');
-            const pngFrame = document.getElementById('png-frame');
-            const btnPdf = document.getElementById('btn-pdf');
-            const btnPng = document.getElementById('btn-png');
-
-            if (mode === 'pdf') {
-                pdfFrame.style.display = 'block';
-                pngFrame.style.display = 'none';
-                btnPdf.classList.add('active');
-                btnPng.classList.remove('active');
-            } else {
-                pdfFrame.style.display = 'none';
-                pngFrame.style.display = 'block';
-                btnPdf.classList.remove('active');
-                btnPng.classList.add('active');
-            }
-        }
-
-        function endOptimization() {
-            const compileBtn = document.getElementById('compile-btn');
-            const stopBtn = document.getElementById('stop-btn');
-            const pulse = document.getElementById('canvas-pulse');
-            compileBtn.disabled = false;
-            stopBtn.style.display = 'none';
-            stopBtn.disabled = false;
-            pulse.classList.remove('running');
-        }
-
-        async function stopOptimization() {
-            const stopBtn = document.getElementById('stop-btn');
-            stopBtn.disabled = true;
-            addLog("Sending cancellation request to compile pipeline...", "warning");
-            try {
-                await fetch('/api/cancel', { method: 'POST' });
-            } catch (err) {
-                console.error("Failed to call cancel API", err);
-            }
-        }
-
-        async function runPipeline(action) {
-            const compileBtn = document.getElementById('compile-btn');
-            const proceedBtn = document.getElementById('proceed-btn');
-            const stopBtn = document.getElementById('stop-btn');
-            const pulse = document.getElementById('canvas-pulse');
-            
-            // Save local editor contents to disk first
-            const profile = document.getElementById('profile-editor').value;
-            const jd = document.getElementById('jd-editor').value;
-            
-            compileBtn.disabled = true;
-            proceedBtn.style.display = 'none';
-            stopBtn.style.display = 'inline-flex';
-            stopBtn.disabled = false;
-            pulse.classList.add('running');
-            addLog("Saving user profile & target job description to workspace...", "info");
-
-            try {
-                const saveRes = await fetch('/api/save', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ profile, job_description: jd })
-                });
-                const saveResult = await saveRes.json();
-                if (saveResult.status !== 'success') {
-                    addLog(`Error saving content: ${saveResult.message}`, "error");
-                    endOptimization();
-                    return;
-                }
-            } catch (err) {
-                addLog(`Failed to communicate with save API: ${err}`, "error");
-                endOptimization();
-                return;
-            }
-
-            // Close existing stream connection
-            if (eventSource) {
-                eventSource.close();
-            }
-
-            // Reset terminal logs (only on analysis)
-            if (action === 'analyze') {
-                document.getElementById('terminal-logs').innerHTML = '';
-                // Reset diagnostic report
-                document.getElementById('diagnostic-container').style.display = 'none';
-                document.getElementById('diagnostic-strengths').innerHTML = '';
-                document.getElementById('diagnostic-gaps').innerHTML = '';
-                document.getElementById('diagnostic-keywords').innerHTML = '';
-            }
-            
-            addLog(action === 'analyze' ? "Executing Stage 0: Semantic Gap Analyzer..." : "Executing auto-correcting optimization loop...", "info");
-
-            // Open stream channel with action parameter
-            eventSource = new EventSource(`/stream?action=${action}`);
-
-            eventSource.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                
-                if (data.status === 'info') {
-                    addLog(data.message, 'info');
-                } else if (data.status === 'success') {
-                    addLog(data.message, 'success');
-                    
-                    if (data.stage === 0 && data.gap_report) {
-                        const report = data.gap_report;
-                        document.getElementById('diagnostic-container').style.display = 'block';
-                        document.getElementById('diagnostic-score').innerText = `${report.closeness_score}% Match`;
-                        
-                        const createBadges = (containerId, items, badgeStyle) => {
-                            const container = document.getElementById(containerId);
-                            container.innerHTML = '';
-                            if (items && items.length > 0) {
-                                items.forEach(item => {
-                                    const span = document.createElement('span');
-                                    span.style.cssText = badgeStyle;
-                                    span.innerText = item;
-                                    container.appendChild(span);
-                                });
-                            } else {
-                                container.innerText = 'None';
-                            }
-                        };
-                        
-                        createBadges('diagnostic-strengths', report.matching_strengths, 
-                            "background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); color: #34d399; padding: 2px 8px; border-radius: 6px; font-size: 11px;");
-                        createBadges('diagnostic-gaps', report.critical_gaps, 
-                            "background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); color: #f87171; padding: 2px 8px; border-radius: 6px; font-size: 11px;");
-                        createBadges('diagnostic-keywords', report.target_keywords, 
-                            "background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24; padding: 2px 8px; border-radius: 6px; font-size: 11px;");
-                    }
-                } else if (data.status === 'warning') {
-                    addLog(data.message, 'warning');
-                } else if (data.status === 'error') {
-                    addLog(data.message, 'error');
-                    eventSource.close();
-                    endOptimization();
-                } else if (data.status === 'complete') {
-                    addLog(data.message, 'success');
-                    
-                    if (action === 'analyze') {
-                        addLog("Analysis complete. Review alignment metrics and click 'Proceed to Optimize' when ready.", "success");
-                    } else {
-                        // Reload output documents on the UI
-                        const timestamp = new Date().getTime();
-                        document.getElementById('pdf-frame').src = `/output/resume.pdf?t=${timestamp}`;
-                        document.getElementById('png-frame').src = `/output/resume.png?t=${timestamp}`;
-                        addLog("Compilation pipeline finished. Best alignment artifact is available in the canvas.", "success");
-                    }
-
-                    eventSource.close();
-                    endOptimization();
-
-                    // If we just completed analysis, we still want to keep proceedBtn visible
-                    if (action === 'analyze') {
-                        proceedBtn.style.display = 'inline-flex';
-                    }
-                }
-            };
-
-            eventSource.onerror = function(err) {
-                addLog("SSE Connection error. Pipeline compilation stream closed.", "error");
-                eventSource.close();
-                endOptimization();
-            };
-        }
-
-        function startAnalysis() {
-            runPipeline('analyze');
-        }
-
-        function startOptimization() {
-            runPipeline('optimize');
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
