@@ -113,7 +113,11 @@ async function runPipeline(action) {
     
     addLog(action === 'analyze' ? "Executing Stage 0: Gap Analyzer..." : "Executing Auto-Correction Loop...", "SYS");
 
-    eventSource = new EventSource(`/stream?action=${action}`);
+    let url = `/stream?action=${action}`;
+    if (action === 'optimize' && window.activeKeywords) {
+        url += `&keywords=${encodeURIComponent(JSON.stringify(Array.from(window.activeKeywords)))}`;
+    }
+    eventSource = new EventSource(url);
 
     eventSource.onmessage = function(event) {
         const data = JSON.parse(event.data);
@@ -130,18 +134,45 @@ async function runPipeline(action) {
             document.getElementById('diagnostic-container').style.display = 'block';
             document.getElementById('diagnostic-score').innerText = `${report.closeness_score}% MATCH`;
             
-            // Render Quick Inject Pills
+            // Render Target Keyword Pills
             const pillsContainer = document.getElementById('diagnostic-pills');
             const pillsLabel = document.getElementById('diagnostic-pills-label');
             pillsContainer.innerHTML = '';
-            if (report.critical_gaps && report.critical_gaps.length > 0) {
+            
+            const keywords = Array.from(new Set([
+                ...(report.critical_gaps || []),
+                ...(report.target_keywords || [])
+            ]));
+            
+            window.activeKeywords = new Set(keywords);
+            
+            if (keywords.length > 0) {
                 pillsLabel.style.display = 'block';
-                report.critical_gaps.forEach(item => {
+                keywords.forEach(item => {
                     const btn = document.createElement('button');
-                    btn.className = 'ats-pill';
-                    btn.style.cssText = "background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.2); color: var(--accent-red); padding: 4px 8px; font-size: 10px; font-family: 'Fira Code', monospace; border-radius: 2px; cursor: pointer; display: flex; align-items: center; gap: 4px;";
-                    btn.innerHTML = `<span>+ ${item}</span><span style="font-size: 8px; opacity: 0.7; background: rgba(255, 107, 107, 0.2); padding: 0 3px;">INJECT</span>`;
-                    btn.onclick = () => injectKeyword(item);
+                    btn.className = 'ats-pill active';
+                    
+                    function updatePillStyle(pill, active) {
+                        if (active) {
+                            pill.style.cssText = "background: rgba(20, 184, 166, 0.15); border: 1px solid rgba(20, 184, 166, 0.4); color: #14b8a6; padding: 4px 8px; font-size: 10px; font-family: 'Fira Code', monospace; border-radius: 2px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;";
+                            pill.innerHTML = `<span>✓ ${item}</span>`;
+                        } else {
+                            pill.style.cssText = "background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #888; padding: 4px 8px; font-size: 10px; font-family: 'Fira Code', monospace; border-radius: 2px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;";
+                            pill.innerHTML = `<span>✗ ${item}</span>`;
+                        }
+                    }
+                    
+                    updatePillStyle(btn, true);
+                    
+                    btn.onclick = () => {
+                        if (window.activeKeywords.has(item)) {
+                            window.activeKeywords.delete(item);
+                            updatePillStyle(btn, false);
+                        } else {
+                            window.activeKeywords.add(item);
+                            updatePillStyle(btn, true);
+                        }
+                    };
                     pillsContainer.appendChild(btn);
                 });
             } else {

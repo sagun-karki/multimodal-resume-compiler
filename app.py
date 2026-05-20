@@ -109,6 +109,14 @@ def compile_stream():
 
     tracker = PipelineContext()
 
+    keywords_param = request.args.get("keywords")
+    selected_keywords = None
+    if keywords_param:
+        try:
+            selected_keywords = json.loads(keywords_param)
+        except Exception:
+            selected_keywords = None
+
     def event_stream():
         generator = run_optimization_pipeline(
             profile_path=PROFILE_PATH,
@@ -118,7 +126,8 @@ def compile_stream():
             output_dir=OUTPUT_DIR,
             tracker=tracker,
             is_cancelled=lambda: PIPELINE_CANCELLED,
-            action=action
+            action=action,
+            selected_keywords=selected_keywords
         )
         for update in generator:
             yield f"data: {json.dumps(update)}\n\n"

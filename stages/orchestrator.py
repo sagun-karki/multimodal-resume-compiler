@@ -15,7 +15,8 @@ def run_optimization_pipeline(
     output_dir: str,
     tracker: PipelineContext,
     is_cancelled=None,
-    action: str = "all"
+    action: str = "all",
+    selected_keywords: list = None
 ):
     """
     Generator function that runs the 4-stage auto-correcting resume optimization loop.
@@ -73,6 +74,10 @@ def run_optimization_pipeline(
             except Exception as e:
                 yield {"status": "error", "message": f"Stage 0 Failed: {str(e)}", "stage": 0}
                 return
+
+    if gap_report and selected_keywords is not None:
+        gap_report["critical_gaps"] = selected_keywords
+        gap_report["target_keywords"] = selected_keywords
 
     critique = ""
     png_path = os.path.join(output_dir, "resume.png")
