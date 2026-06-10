@@ -67,9 +67,161 @@ textarea { width: 100%; height: 100%; border: none; outline: none; resize: none;
 
 .preview-frame { width: 100%; height: 100%; border: none; background: #fff; }
 img.preview-frame { object-fit: contain; padding: 14px; }
-
 @media (max-width: 980px) {
     main { flex-direction: column; }
     .left-panel,.right-panel { width: 100%; min-height: 42vh; }
     .resize-handle { display: none; }
 }
+
+/* --- Progress Bar and Stepper Styles --- */
+.progress-bar-container {
+    margin: 0 10px 10px;
+    padding: 14px;
+    background: #0f1319;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    animation: slideDown 0.3s ease-out;
+}
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.progress-label {
+    font: 700 10px "Fira Code", monospace;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.progress-percent {
+    font: 700 12px "Fira Code", monospace;
+    color: var(--blue);
+}
+.progress-track {
+    width: 100%;
+    height: 6px;
+    background: #141922;
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+}
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--blue), #3ae7ff);
+    border-radius: 999px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    box-shadow: 0 0 10px rgba(79, 140, 255, 0.5);
+}
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background-image: linear-gradient(
+        -45deg, 
+        rgba(255, 255, 255, .15) 25%, 
+        transparent 25%, 
+        transparent 50%, 
+        rgba(255, 255, 255, .15) 50%, 
+        rgba(255, 255, 255, .15) 75%, 
+        transparent 75%, 
+        transparent
+    );
+    background-size: 20px 20px;
+    animation: progress-bar-stripes 1s linear infinite;
+}
+@keyframes progress-bar-stripes {
+    from { background-position: 0 0; }
+    to { background-position: 20px 0; }
+}
+
+.progress-bar-container.success .progress-percent {
+    color: var(--green);
+}
+.progress-bar-container.success .progress-fill {
+    background: var(--green);
+    box-shadow: 0 0 10px rgba(43, 196, 138, 0.5);
+}
+.progress-bar-container.success .progress-fill::after {
+    display: none;
+}
+.progress-bar-container.error .progress-percent {
+    color: var(--red);
+}
+.progress-bar-container.error .progress-fill {
+    background: var(--red);
+    box-shadow: 0 0 10px rgba(255, 106, 123, 0.5);
+}
+.progress-bar-container.error .progress-fill::after {
+    display: none;
+}
+
+/* Stepper styling */
+.stepper-container {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin-top: 6px;
+    padding: 0 4px;
+}
+.stepper-container::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    right: 10px;
+    height: 2px;
+    background: var(--line);
+    z-index: 1;
+}
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    z-index: 2;
+    flex: 1;
+}
+.step-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--panel-2);
+    border: 2px solid var(--line);
+    transition: all 0.3s ease;
+    box-shadow: 0 0 0 2px var(--panel);
+}
+.step-name {
+    font: 600 9px "Fira Code", monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    transition: color 0.3s ease;
+}
+.step.active .step-dot {
+    background: var(--blue);
+    border-color: #3ae7ff;
+    box-shadow: 0 0 8px rgba(79, 140, 255, 0.8), 0 0 0 2px var(--panel);
+}
+.step.active .step-name {
+    color: var(--ink);
+    font-weight: 700;
+}
+.step.completed .step-dot {
+    background: var(--green);
+    border-color: #2bc48a;
+    box-shadow: 0 0 8px rgba(43, 196, 138, 0.6), 0 0 0 2px var(--panel);
+}
+.step.completed .step-name {
+    color: var(--muted);
+}
+

@@ -141,10 +141,96 @@ function addLog(text, type = 'INFO') {
     container.scrollTop = container.scrollHeight;
 }
 
+let currentIteration = 1;
+let currentStage = 0;
+const MAX_ITERATIONS = 2; // Matches server MAX_ITERATIONS default
+let analyzeInterval = null;
+let analyzePercent = 0;
+
+function updateProgress(percent, label, status = '') {
+    const container = document.getElementById('pipeline-progress');
+    const fill = document.getElementById('progress-fill');
+    const percentEl = document.getElementById('progress-percent');
+    const labelEl = document.getElementById('progress-label');
+
+    if (percent === 0) {
+        fill.style.transition = 'none';
+        fill.offsetHeight; // force reflow
+    } else {
+        fill.style.transition = 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    }
+
+    container.className = 'progress-bar-container' + (status ? ' ' + status : '');
+    fill.style.width = percent + '%';
+    percentEl.innerText = Math.round(percent) + '%';
+    if (label) {
+        labelEl.innerText = label;
+    }
+}
+
+function updateStepper(stage) {
+    // stage is 0 (ATS), 1 (Write), 2 (Compile), 3 (Audit)
+    for (let i = 0; i <= 3; i++) {
+        const stepEl = document.getElementById(`step-${i}`);
+        if (!stepEl) continue;
+        stepEl.classList.remove('active', 'completed');
+        if (i < stage) {
+            stepEl.classList.add('completed');
+        } else if (i === stage) {
+            stepEl.classList.add('active');
+        }
+    }
+}
+
+function startAnalyzeSimulation() {
+    analyzePercent = 0;
+    updateProgress(0, "Executing Stage 0: Gap Analyzer...");
+    if (analyzeInterval) clearInterval(analyzeInterval);
+    analyzeInterval = setInterval(() => {
+        if (analyzePercent < 60) {
+            analyzePercent += 8;
+        } else if (analyzePercent < 85) {
+            analyzePercent += 3;
+        } else if (analyzePercent < 95) {
+            analyzePercent += 1;
+        }
+        updateProgress(analyzePercent, "Executing Stage 0: Gap Analyzer...");
+    }, 450);
+}
+
+function stopAnalyzeSimulation(success, message) {
+    if (analyzeInterval) {
+        clearInterval(analyzeInterval);
+        analyzeInterval = null;
+    }
+    if (success) {
+        updateProgress(100, message || "ATS Gap analysis complete.", "success");
+    } else {
+        updateProgress(100, message || "Analysis failed.", "error");
+    }
+}
+
 function endOptimization() {
     document.getElementById('compile-btn').disabled = false;
     document.getElementById('stop-btn').style.display = 'none';
     document.getElementById('stop-btn').disabled = false;
+    
+    // Gracefully fade out the progress bar after 2.5s
+    if (window.progressFadeTimeout) clearTimeout(window.progressFadeTimeout);
+    if (window.progressHideTimeout) clearTimeout(window.progressHideTimeout);
+    
+    window.progressFadeTimeout = setTimeout(() => {
+        const container = document.getElementById('pipeline-progress');
+        if (container) {
+            container.style.transition = 'opacity 0.5s ease-out';
+            container.style.opacity = '0';
+            window.progressHideTimeout = setTimeout(() => {
+                container.style.display = 'none';
+                container.style.opacity = '1';
+                container.style.transition = '';
+            }, 500);
+        }
+    }, 2500);
 }
 
 async function stopOptimization() {
@@ -169,6 +255,28 @@ async function runPipeline(action) {
     proceedBtn.style.display = 'none';
     stopBtn.style.display = 'inline-block';
     stopBtn.disabled = false;
+    
+    // Prepare progress indicators
+    const progressContainer = document.getElementById('pipeline-progress');
+    progressContainer.style.display = 'flex';
+    progressContainer.style.opacity = '1';
+    
+    if (window.progressFadeTimeout) clearTimeout(window.progressFadeTimeout);
+    if (window.progressHideTimeout) clearTimeout(window.progressHideTimeout);
+    
+    updateProgress(0, "Saving workspace configs...");
+    
+    const stepperContainer = document.getElementById('pipeline-stepper');
+    if (action === 'analyze') {
+        stepperContainer.style.display = 'none';
+    } else {
+        stepperContainer.style.display = 'flex';
+        updateStepper(-1);
+    }
+    
+    currentIteration = 1;
+    currentStage = 0;
+
     addLog("Saving workspace configs...", "SYS");
 
     try {
@@ -180,11 +288,13 @@ async function runPipeline(action) {
         const saveResult = await saveRes.json();
         if (saveResult.status !== 'success') {
             addLog(`Error saving content: ${saveResult.message}`, "ERROR");
+            updateProgress(100, `Error saving content: ${saveResult.message}`, "error");
             endOptimization();
             return;
         }
     } catch (err) {
         addLog(`Failed to save API: ${err}`, "ERROR");
+        updateProgress(100, `Failed to save API: ${err}`, "error");
         endOptimization();
         return;
     }
@@ -194,6 +304,9 @@ async function runPipeline(action) {
     if (action === 'analyze') {
         document.getElementById('terminal-logs').innerHTML = '';
         document.getElementById('diagnostic-container').style.display = 'none';
+        startAnalyzeSimulation();
+    } else {
+        updateProgress(5, "Initializing optimization pipeline...");
     }
     
     addLog(action === 'analyze' ? "Executing Stage 0: Gap Analyzer..." : "Executing Auto-Correction Loop...", "SYS");
@@ -226,6 +339,30 @@ async function runPipeline(action) {
 
         if (data.telemetry) {
             renderTokenChart(data.telemetry.input_tokens || 0, data.telemetry.output_tokens || 0);
+        }
+        
+        // Track iterations and stages
+        if (data.iteration !== undefined) {
+            currentIteration = data.iteration;
+        }
+        if (data.stage !== undefined) {
+            currentStage = data.stage;
+            if (action === 'optimize') {
+                updateStepper(currentStage);
+            }
+        }
+        
+        // Update live progress label and percent for optimization
+        if (action === 'optimize' && data.status !== 'complete' && data.status !== 'error') {
+            let progress = 5;
+            if (currentStage === 0) {
+                progress = 10;
+            } else {
+                const totalSteps = MAX_ITERATIONS * 3;
+                const completedSteps = (currentIteration - 1) * 3 + (currentStage - 1);
+                progress = 10 + Math.min((completedSteps / totalSteps) * 85, 85);
+            }
+            updateProgress(progress, data.message);
         }
         
         if (data.status === 'success' && data.stage === 0 && data.gap_report) {
@@ -326,7 +463,7 @@ async function runPipeline(action) {
                             </label>
                         </div>
                         <p style="font-size: 11px; color: var(--text-muted); line-height: 1.4; margin: 0;">
-                            ${secData.recommendation || ''}
+                             ${secData.recommendation || ''}
                         </p>
                         ${bulletHtml ? `<div style="display: flex; flex-direction: column; gap: 4px; font-size: 10px; font-family: 'Fira Code', monospace; margin-top: 4px;">${bulletHtml}</div>` : ''}
                     `;
@@ -346,14 +483,22 @@ async function runPipeline(action) {
             }
         } else if (data.status === 'error') {
             eventSource.close();
+            if (action === 'analyze') {
+                stopAnalyzeSimulation(false, data.message);
+            } else {
+                updateProgress(100, data.message || "Optimization failed.", "error");
+            }
             endOptimization();
         } else if (data.status === 'complete') {
             if (action === 'analyze') {
+                stopAnalyzeSimulation(true, data.message);
                 proceedBtn.style.display = 'inline-block';
             } else {
                 const timestamp = new Date().getTime();
                 document.getElementById('pdf-frame').src = `/output/resume.pdf?t=${timestamp}`;
                 document.getElementById('png-frame').src = `/output/resume.png?t=${timestamp}`;
+                updateStepper(4);
+                updateProgress(100, "Optimization complete!", "success");
             }
             eventSource.close();
             endOptimization();
@@ -363,6 +508,11 @@ async function runPipeline(action) {
     eventSource.onerror = function(err) {
         addLog("SSE Connection error. Pipeline compilation stream closed.", "ERROR");
         eventSource.close();
+        if (action === 'analyze') {
+            stopAnalyzeSimulation(false, "SSE Connection error.");
+        } else {
+            updateProgress(100, "SSE Connection error.", "error");
+        }
         endOptimization();
     };
 }

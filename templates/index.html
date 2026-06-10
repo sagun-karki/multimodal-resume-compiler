@@ -63,6 +63,34 @@
                     <!-- Dynamic section cards -->
                 </div>
             </div>
+            <!-- Dynamic Progress Indicator -->
+            <div class="progress-bar-container" id="pipeline-progress" style="display: none;">
+                <div class="progress-header">
+                    <span class="progress-label" id="progress-label">Preparing pipeline...</span>
+                    <span class="progress-percent" id="progress-percent">0%</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+                </div>
+                <div class="stepper-container" id="pipeline-stepper" style="display: none;">
+                    <div class="step" id="step-0">
+                        <div class="step-dot"></div>
+                        <span class="step-name">ATS</span>
+                    </div>
+                    <div class="step" id="step-1">
+                        <div class="step-dot"></div>
+                        <span class="step-name">Write</span>
+                    </div>
+                    <div class="step" id="step-2">
+                        <div class="step-dot"></div>
+                        <span class="step-name">Compile</span>
+                    </div>
+                    <div class="step" id="step-3">
+                        <div class="step-dot"></div>
+                        <span class="step-name">Audit</span>
+                    </div>
+                </div>
+            </div>
 
             <div class="action-bar">
                 <button class="btn btn-primary" id="compile-btn" onclick="startAnalysis()">ANALYZE ALIGNMENT</button>
