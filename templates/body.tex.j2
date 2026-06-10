@@ -17,19 +17,21 @@
   \validatedbullet{ {{ bullet }} }
 {% endfor %}
 \end{itemize}
+{% if not loop.last %}
+
+\vspace{4pt}
+
+{% endif %}
 {% endfor %}
 {% endif %}
 
 {% if projects %}
 \section*{PROJECTS}
+\begin{itemize}[leftmargin=0.7em, label={}, itemsep=2pt, parsep=0pt, topsep=2pt]
 {% for project in projects %}
-\textbf{ {{ project.name }} | {{ project.technologies }} } \hfill {{ project.date }}
-\begin{itemize}
-{% for bullet in project.bullets %}
-  \validatedbullet{ {{ bullet }} }
+  \validatedbullet{\textbf{ {{ project.name }} |}{% if project.bullets %} {{ project.bullets | join(' ') }}{% endif %} }
 {% endfor %}
 \end{itemize}
-{% endfor %}
 {% endif %}
 
 {% if education %}
@@ -42,7 +44,7 @@
 
 {% if honors %}
 \section*{HONORS AND ACTIVITIES}
-\begin{itemize}
+\begin{itemize}[leftmargin=0.7em, label={}, itemsep=1pt, parsep=0pt, topsep=2pt]
 {% for honor in honors %}
   \validatedbullet{ {{ honor }} }
 {% endfor %}
