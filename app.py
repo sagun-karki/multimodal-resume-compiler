@@ -42,6 +42,18 @@ def _get_or_create_cancel_token(run_id: str) -> Event:
 
 @app.route("/")
 def index():
+    pdf_path = os.path.join(OUTPUT_DIR, "resume.pdf")
+    png_path = os.path.join(OUTPUT_DIR, "resume.png")
+    if not os.path.exists(pdf_path) or not os.path.exists(png_path):
+        try:
+            from stages.stage2_pdf_manager import run_stage2
+            from utils.helpers import clean_and_write
+            logger.info("Default resume outputs missing. Compiling...")
+            run_stage2(MAIN_TEX_PATH, OUTPUT_DIR)
+            clean_and_write(MAIN_TEX_PATH, GENERATED_TEX_PATH, os.path.join(OUTPUT_DIR, "resume.tex"))
+        except Exception as e:
+            logger.error("Failed to compile default resume files on startup/load: %s", str(e))
+
     profile_content = ""
     if os.path.exists(PROFILE_PATH):
         with open(PROFILE_PATH, "r", encoding="utf-8") as f:
