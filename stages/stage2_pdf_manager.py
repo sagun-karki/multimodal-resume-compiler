@@ -47,28 +47,32 @@ def run_stage2(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
     main_content = re.sub(r'\\input\{([^}]+)\}', replace_input_match, main_content)
         
     macro_definition = """
-% Custom wrapping helper to measure text width and output warning/orphan tags to the compile log
+% Advanced multi-line vertical space block measurement macro engine
 \\newsavebox{\\linebox}
-\\newcommand{\\validatedbullet}[1]{%
-  \\sbox{\\linebox}{#1}% Save the text to a geometric measurement box
-  \\ifdim\\wd\\linebox>2\\linewidth% If the text box width is wider than two lines text width
-    \\typeout{LATEX_METRIC: BULLET_OVERFLOW_DETECTED: #1}% Write directly to log!
+\\newdimen{\\beforeheight}
+\\newdimen{\\afterheight}
+
+\\newcommand{\\validatedbullet}[2][]{%
+  % Store current vertical cursor position structure metrics
+  \\setbox0=\\vbox{\\hsize=\\linewidth #2}%
+  \\ifdim\\ht0>2\\baselineskip% Detect if the paragraph block vertical height spans strictly greater than two full line heights
+    \\typeout{LATEX_METRIC: BULLET_OVERFLOW_DETECTED: #1}%
   \\else
-    \\ifdim\\wd\\linebox>\\linewidth% If it wraps to the second line
-      \\ifdim\\wd\\linebox<1.5\\linewidth% But is less than 1.5 lines (underfilled/orphan)
+    \\ifdim\\ht0>\\baselineskip% If the text content wraps onto a second physical line block
+      \\ifdim\\ht0<1.5\\baselineskip% Check if it occupies less than 1.5 lines total height (dangling orphan word boundary)
         \\typeout{LATEX_METRIC: BULLET_ORPHAN_DETECTED: #1}%
       \\fi
     \\fi
   \\fi
-  \\item #1% Render bullet
+  \\item #2% Typeset output bullet string
 }
 
-\\newcommand{\\validatedskill}[1]{%
-  \\sbox{\\linebox}{#1}% Save the skill text to geometric measurement box
-  \\ifdim\\wd\\linebox>\\linewidth% If it wraps to the second line at all (strictly > 1.0 lines)
+\\newcommand{\\validatedskill}[2][]{%
+  \\setbox0=\\vbox{\\hsize=\\linewidth #2}%
+  \\ifdim\\ht0>\\baselineskip% If a single categorized skills line wraps past 1.0 physical lines, flag space layout compromise
     \\typeout{LATEX_METRIC: SKILL_OVERFLOW_DETECTED: #1}%
   \\fi
-  \\item #1% Render skill
+  \\item #2% Typeset output skill item
 }
 """
     if "\\begin{document}" in main_content:

@@ -25,12 +25,30 @@ def track_tokens(response, tracker, model_type: str = "text"):
 def extract_bullets(latex_content: str) -> list[str]:
     """
     Parses out the exact content strings inside all \\validatedbullet{...} macros.
-    Handles nested curly braces up to arbitrary depths.
+    Handles nested curly braces up to arbitrary depths and optional bracket path parameters.
     """
     bullets = []
-    pattern = r'\\\\validatedbullet\\{'
+    pattern = r'\\validatedbullet'
     for match in re.finditer(pattern, latex_content):
         start = match.end()
+        # Skip optional path parameter in brackets if present
+        if start < len(latex_content) and latex_content[start] == '[':
+            brace_count = 1
+            i = start + 1
+            while i < len(latex_content) and brace_count > 0:
+                if latex_content[i] == '[':
+                    brace_count += 1
+                elif latex_content[i] == ']':
+                    brace_count -= 1
+                i += 1
+            start = i
+            
+        # Find opening curly brace
+        while start < len(latex_content) and latex_content[start] != '{':
+            start += 1
+        if start < len(latex_content):
+            start += 1
+            
         brace_count = 1
         i = start
         while i < len(latex_content) and brace_count > 0:
@@ -50,7 +68,7 @@ def clean_generated_tex(content: str) -> str:
     """Replace all \\validatedbullet{...} with \\item ..."""
     result = []
     idx = 0
-    target = r'\validatedbullet{'
+    target = r'\validatedbullet'
     while idx < len(content):
         next_pos = content.find(target, idx)
         if next_pos == -1:
@@ -59,7 +77,25 @@ def clean_generated_tex(content: str) -> str:
         
         result.append(content[idx:next_pos])
         
+        # Check if there is an optional [path] argument and skip it
         start = next_pos + len(target)
+        if start < len(content) and content[start] == '[':
+            brace_count = 1
+            i = start + 1
+            while i < len(content) and brace_count > 0:
+                if content[i] == '[':
+                    brace_count += 1
+                elif content[i] == ']':
+                    brace_count -= 1
+                i += 1
+            start = i
+            
+        # Find opening curly brace
+        while start < len(content) and content[start] != '{':
+            start += 1
+        if start < len(content):
+            start += 1
+            
         brace_count = 1
         i = start
         while i < len(content) and brace_count > 0:
