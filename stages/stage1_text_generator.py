@@ -3,9 +3,39 @@ import os
 import json
 import jinja2
 import google.generativeai as genai
+from pydantic import BaseModel, Field
+from typing import Dict, List, Optional
 from utils.config import TEXT_MODEL
 from utils.context import PipelineContext
 from utils.helpers import get_api_key, track_tokens, extract_bullets
+
+# --- Pydantic Schemas for Structured Output ---
+
+class JobExperience(BaseModel):
+    title: str = Field(description="Job Title")
+    company: str = Field(description="Company Name")
+    location: str = Field(description="City, ST")
+    date: str = Field(description="Start - End date")
+    bullets: List[str] = Field(description="List of achievement bullet points")
+
+class Project(BaseModel):
+    name: str = Field(description="Project Name")
+    technologies: str = Field(description="Comma-separated technologies list")
+    bullets: List[str] = Field(description="List of project description bullet points")
+
+class Education(BaseModel):
+    school: str = Field(description="University Name")
+    degree: str = Field(description="Degree details")
+    location: str = Field(description="City, ST")
+    date: str = Field(description="Graduation Date")
+
+class FullResumeSchema(BaseModel):
+    skills: Dict[str, List[str]] = Field(description="Skills categorized by type, e.g., {'Languages': [...], 'ML & Statistics': [...]}")
+    experience: List[JobExperience] = Field(description="Work experience list")
+    projects: List[Project] = Field(description="Projects list")
+    education: List[Education] = Field(description="Education details")
+    honors: List[str] = Field(description="List of honors and activities")
+
 
 def sanitize_latex_chars(latex_content: str) -> str:
     """Escape raw special characters like &, %, # if they are not already escaped."""
@@ -24,6 +54,7 @@ def render_resume_template(resume_json: dict) -> str:
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(template_dir))
     template = env.get_template("body.tex.j2")
     return template.render(**resume_json)
+
 
 def optimize_single_bullet(bullet: str, direction: str, gap_report: dict, tracker: PipelineContext) -> str:
     """
@@ -65,6 +96,7 @@ def optimize_single_bullet(bullet: str, direction: str, gap_report: dict, tracke
 
     return new_bullet
 
+
 def _replace_bullet_in_json(resume_json: dict, old_bullet: str, new_bullet: str):
     """Mutates the resume_json in-place by replacing old_bullet with new_bullet."""
     if "experience" in resume_json:
@@ -83,6 +115,7 @@ def _replace_bullet_in_json(resume_json: dict, old_bullet: str, new_bullet: str)
         for i, honor in enumerate(resume_json["honors"]):
             if honor.strip() == old_bullet.strip():
                 resume_json["honors"][i] = new_bullet
+
 
 def _is_bullet_in_skipped_section(resume_json: dict, bullet: str, skipped_sections: list[str]) -> bool:
     if not skipped_sections:
@@ -112,6 +145,7 @@ def _is_bullet_in_skipped_section(resume_json: dict, bullet: str, skipped_sectio
                 return True
                 
     return False
+
 
 def run_stage1(
     profile_path: str,
@@ -157,36 +191,7 @@ def run_stage1(
         "Your task is to take the user's master profile, the target job description, and the ATS gap analysis report, "
         "and generate a fully tailored set of resume content blocks in JSON format.\n\n"
         "CORE MANDATES:\n"
-        "1. Output ONLY valid JSON. Do not wrap in markdown (no ```json). The schema must match the following structure:\n"
-        "   {\n"
-        "     \"skills\": { \"Category1\": [\"Skill1\", \"Skill2\"], \"Category2\": [...] },\n"
-        "     \"experience\": [\n"
-        "       {\n"
-        "         \"title\": \"Job Title\",\n"
-        "         \"company\": \"Company Name\",\n"
-        "         \"location\": \"City, ST\",\n"
-        "         \"date\": \"Start - End\",\n"
-        "         \"bullets\": [\"Bullet 1\", \"Bullet 2\"]\n"
-        "       }\n"
-        "     ],\n"
-        "     \"projects\": [\n"
-        "       {\n"
-        "         \"name\": \"Project Name\",\n"
-        "         \"technologies\": \"Tech1, Tech2\",\n"
-        "         \"date\": \"Date\",\n"
-        "         \"bullets\": [\"Bullet 1\"]\n"
-        "       }\n"
-        "     ],\n"
-        "     \"education\": [\n"
-        "       {\n"
-        "         \"school\": \"University Name\",\n"
-        "         \"degree\": \"Degree details\",\n"
-        "         \"location\": \"City, ST\",\n"
-        "         \"date\": \"Graduation Date\"\n"
-        "       }\n"
-        "     ],\n"
-        "     \"honors\": [\"Honor 1\", \"Honor 2\"]\n"
-        "   }\n"
+        "1. Output ONLY valid JSON matching the schema.\n"
         "2. Incorporate target keywords from the gap analysis report to maximize ATS alignment.\n"
         "3. Enforce factuality: You are strictly FORBIDDEN from inventing metrics, company names, job titles, degrees, "
         "or projects. You must only use experiences and achievements verified in the master user profile.\n"
@@ -220,7 +225,7 @@ def run_stage1(
         f"CURRENT LAYOUT CRITIQUE (FEEDBACK LOOP):\n{critique if critique else 'No critique. This is the initial generation.'}"
     )
 
-    # Call Gemini API
+    # Call Gemini API with structured schema
     model = genai.GenerativeModel(
         model_name=TEXT_MODEL,
         system_instruction=system_prompt
@@ -230,26 +235,14 @@ def run_stage1(
         user_message,
         generation_config={
             "temperature": 0.1,
-            "response_mime_type": "application/json"
+            "response_mime_type": "application/json",
+            "response_schema": FullResumeSchema
         }
     )
 
-    json_str = response.text.strip()
+    # Parse directly from response using JSON loads (no stripping strings needed!)
+    resume_json = json.loads(response.text.strip())
     
-    # Remove markdown code blocks if any (just in case the model ignores instructions)
-    if json_str.startswith("```json"):
-        json_str = json_str[7:]
-    if json_str.startswith("```"):
-        json_str = json_str[3:]
-    if json_str.endswith("```"):
-        json_str = json_str[:-3]
-        
-    try:
-        resume_json = json.loads(json_str)
-    except json.JSONDecodeError as e:
-        # Fallback if json is corrupted
-        raise RuntimeError(f"Failed to decode LLM response as JSON: {e}\nResponse: {json_str}")
-
     # Render template
     latex_content = render_resume_template(resume_json)
 

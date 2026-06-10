@@ -15,6 +15,7 @@ class PipelineContext:
         # Iteration and loop state
         self.iteration = 0
         self.history_hashes: List[str] = []
+        self.history_embeddings: List[List[float]] = []
         self.warnings: List[str] = []
 
     def track(self, model_type: str, input_tokens: int, output_tokens: int) -> float:
@@ -52,14 +53,49 @@ class PipelineContext:
 
     def register_content(self, content: str) -> bool:
         """
-        Calculates content hash. Returns True if hash is unique (new), 
-        or False if it matches a previously generated round (indicating a plateau loop).
+        Calculates content hash and embedding. Returns True if unique (new), 
+        or False if it matches or is semantically too close to a previous round (plateau).
         """
+        import hashlib
+        import math
         content_hash = hashlib.md5(content.encode("utf-8")).hexdigest()
+        
         with self._lock:
             if content_hash in self.history_hashes:
                 return False
             self.history_hashes.append(content_hash)
+            
+            # Semantic similarity check with previous iteration
+            from utils.helpers import get_api_key
+            import google.generativeai as genai
+            
+            try:
+                api_key = get_api_key()
+                genai.configure(api_key=api_key)
+                res = genai.embed_content(
+                    model="models/text-embedding-004",
+                    content=content,
+                    task_type="semantic_similarity"
+                )
+                new_embedding = res.get("embedding")
+            except Exception as e:
+                self.warnings.append(f"Failed to fetch content embedding: {e}")
+                new_embedding = None
+                
+            if new_embedding and self.history_embeddings:
+                prev_embedding = self.history_embeddings[-1]
+                dot_product = sum(x * y for x, y in zip(new_embedding, prev_embedding))
+                norm_new = math.sqrt(sum(x * x for x in new_embedding))
+                norm_prev = math.sqrt(sum(x * x for x in prev_embedding))
+                
+                if norm_new > 0 and norm_prev > 0:
+                    similarity = dot_product / (norm_new * norm_prev)
+                    if similarity > 0.98:
+                        self.warnings.append(f"Semantic similarity plateau detected: {similarity:.4f} > 0.98")
+                        return False
+            
+            if new_embedding:
+                self.history_embeddings.append(new_embedding)
             return True
 
     def add_warning(self, warning: str):
@@ -75,4 +111,5 @@ class PipelineContext:
             self.accumulated_cost = 0.0
             self.iteration = 0
             self.history_hashes = []
+            self.history_embeddings = []
             self.warnings = []
