@@ -12,6 +12,7 @@ from utils.validation import validate_resume_json
 # --- Pydantic Schemas for Structured Output ---
 
 class JobExperience(BaseModel):
+    path_id: str = Field(description="Deterministic array path key identifier matching array index, e.g., 'experience[0]' or 'experience[1]'")
     title: str = Field(description="Job Title")
     company: str = Field(description="Company Name")
     location: str = Field(description="City, ST")
@@ -19,6 +20,7 @@ class JobExperience(BaseModel):
     bullets: List[str] = Field(description="List of achievement bullet points")
 
 class Project(BaseModel):
+    path_id: str = Field(description="Deterministic array path key identifier matching array index, e.g., 'projects[0]' or 'projects[1]'")
     name: str = Field(description="Project Name")
     technologies: str = Field(description="Comma-separated technologies list")
     bullets: List[str] = Field(description="List of project description bullet points")
@@ -30,11 +32,15 @@ class Education(BaseModel):
     date: str = Field(description="Graduation Date")
 
 class FullResumeSchema(BaseModel):
-    skills: Dict[str, List[str]] = Field(description="Skills categorized by type, e.g., {'Languages': [...], 'ML & Statistics': [...]}")
-    experience: List[JobExperience] = Field(description="Work experience list")
-    projects: List[Project] = Field(description="Projects list")
+    skills: Dict[str, List[str]] = Field(description="Skills categorized by type exactly tracking master names")
+    experience: List[JobExperience] = Field(description="Work experience list matching structural tracking")
+    projects: List[Project] = Field(description="Projects list matching structural tracking")
     education: List[Education] = Field(description="Education details")
     honors: List[str] = Field(description="List of honors and activities")
+    exhaustion_metadata: Dict[str, bool] = Field(
+        default_factory=dict,
+        description="A dictionary map marking sections as true/false to signal if all source profile bullets from user_profile.md are fully exhausted. Prevents the model from hallucinating metrics when handling EMPTY_BOTTOM status instructions."
+    )
 
 class AtomicEdit(BaseModel):
     action: str = Field(description="The action to perform, e.g., 'modify_bullet' or 'modify_skill'")
@@ -140,7 +146,11 @@ class ResumeWriterAgent(BaseAgent):
             "6. Skill Category Constraints:\n"
             "   - Keep the list of skills concise so they can fit on a single line when rendered. If a list of skills is too long, strictly remove the least relevant or least likely skills.\n"
             "7. Header Constraints:\n"
-            "   - Do NOT change or rename any section headers or skill category headers. You MUST use the exact same skill category headers and section headers as they appear in the original user profile.\n\n"
+            "   - Do NOT change or rename any section headers or skill category headers. You MUST use the exact same skill category headers and section headers as they appear in the original user profile.\n"
+            "8. Array Path Tracking:\n"
+            "   - You MUST output the correct path_id parameter for every JobExperience and Project item matching its 0-based array index (e.g. 'experience[0]' or 'projects[1]').\n"
+            "9. Content Exhaustion Tracking:\n"
+            "   - Fill in exhaustion_metadata map sections to true/false signaling if all candidate bullets/metrics from the master background user_profile.md are fully exhausted. This tells the model what unused metrics remain available to fill EMPTY_BOTTOM instructions without hallucinating data.\n\n"
             "LAYOUT FEEDBACK HANDLING:\n"
             "If the layout feedback is OVERFLOW, you must make bullet descriptions more concise, shorten phrases, or remove "
             "lower-priority items while keeping core ATS keywords.\n"
@@ -173,8 +183,8 @@ class ResumeWriterAgent(BaseAgent):
                 "and output a targeted list of atomic edits to apply to the resume. Follow these constraints:\n\n"
                 "1. Output ONLY valid JSON matching the schema.\n"
                 "2. Identify the specific bullet points or skill fields that are failing visual audit (e.g. overflowing or orphan lines) "
-                "and suggest targeted atomic edits.\n"
-                "3. Each edit must specify the JSON path (e.g., 'experience[0].bullets[2]' or 'skills.Languages[1]'), the original text, and the replacement text.\n"
+                "using their deterministic JSON paths (e.g., 'experience[0].bullets[2]' or 'skills.Languages[1]') and suggest targeted atomic edits.\n"
+                "3. Each edit must specify the JSON path, the original text, and the replacement text.\n"
                 "4. Keep formatting standard, do not hyper-tailor or embellish facts, and ensure the edits are as minimal as possible to resolve the layout issue.\n"
                 "5. If direction is 'shorten': make the replacement more concise (under 85 characters, strictly under 90 characters) so it fits on a single line.\n"
                 "6. If direction is 'lengthen': expand the description to occupy more space naturally.\n"
@@ -191,7 +201,7 @@ class ResumeWriterAgent(BaseAgent):
                 f"PREVIOUS_RESUME_JSON:\n{json.dumps(previous_json, indent=2)}\n\n"
                 f"JOB DESCRIPTION:\n{jd_content}\n\n"
                 f"ATS GAP ANALYSIS REPORT:\n{gap_report}\n\n"
-                f"FAILING_BULLETS_TO_FIX:\n{json.dumps(failing_bullets, indent=2)}\n\n"
+                f"FAILING_BULLETS_TO_FIX (JSON PATHS):\n{json.dumps(failing_bullets, indent=2)}\n\n"
                 f"REQUIRED_DIRECTION: {direction}\n\n"
                 f"CURRENT LAYOUT CRITIQUE (FEEDBACK LOOP):\n{critique if critique else 'No critique.'}"
             )
