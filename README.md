@@ -23,12 +23,12 @@ graph TD
     F -->|Critique / Adjustments| C
 ```
 
-### Specialized Agents & Roles
-*   **Coordinator Agent (`agents/coordinator.py`):** Acts as the supervisor, guiding the optimization flow, handling intermediate variables, and invoking external programmatic tools.
-*   **ATS Analyzer Agent (`agents/ats_analyzer.py`):** Scores profile alignment against the job description, detects missing skills, and selects target keywords.
-*   **Resume Writer Agent (`agents/resume_writer.py`):** Formats experience blocks, dynamically injects target keywords, and shortens/lengthens bullet points to comply with layout boundaries.
-*   **Visual Auditor Agent (`agents/visual_auditor.py`):** Utilizes multimodal vision to review the final spacing, margins, orphan lines, and general visual layout of the rendered page.
-*   **Compiler Tool (`stages/stage2_pdf_manager.py`):** Programmatic tool that compiles LaTeX source using XeLaTeX, catches typographic warnings, and generates high-resolution page previews.
+## Prerequisites
+
+Before running the application, ensure you have a LaTeX distribution with `xelatex` installed on your system:
+- **macOS:** Install MacTeX (`brew install --cask mactex-no-gui`) or BasicTeX.
+- **Linux:** Install TeX Live (`sudo apt-get install texlive-xetex` / `texlive-fonts-recommended`).
+- **Windows:** Install MiKTeX or TeX Live.
 
 ## How to Run
 
