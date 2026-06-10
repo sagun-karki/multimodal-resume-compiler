@@ -8,41 +8,42 @@
 - **Github:** github.com/sagun-karki
 
 ## SKILLS
-- **Languages:** Python (Pandas, Scikit-Learn, PyTorch), SQL (BigQuery, PostgreSQL, Snowflake), R, Bash, Excel
-- **ML & Statistics:** Time-Series Forecasting, Statistical Modeling, A/B Testing, XGBoost, LSTM, NLP
-- **Cloud & MLOps:** GCP (Vertex AI, BigQuery), AWS (S3), dbt, Apache Airflow, Docker, CI/CD, Git
+- **Languages:** Python (Pandas, Scikit-learn, PyTorch), SQL (BigQuery, PostgreSQL), R, JavaScript, Bash
+- **Machine Learning:** XGBoost, LSTM, Prophet, K-Means, Survival Analysis, A/B Testing
+- **Deployment & Cloud:** GCP (Vertex AI), FastAPI, Docker, Git/GitHub Actions, REST APIs, MLflow
+- **Data Engineering:** BigQuery, dbt, Dataform, Apache Airflow, ETL/ELT Pipelines
 
 ## EXPERIENCE
 
-### Data Science Intern | Nebraska Public Media
+### Data Scientist Intern | Nebraska Public Media
 *Jan 2025 - Present | Lincoln, NE*
-- Developed time-series forecasting models (Prophet/ARIMA) to predict user engagement, improving business planning accuracy and identifying high-churn segments for Q3 strategy.
-- Evaluated LLM prompt engineering performance for internal text summarization workflows, optimizing context extraction logic to reduce query latency by 20%.
-- Conducted exploratory data analysis on audio playback logs using SQL and Python, isolating structural drop-off intervals to improve listener retention metrics.
-- Collaborated with engineering teams to implement automated data quality checks in BigQuery, ensuring reliable inputs for downstream statistical modeling.
+- Engineered real-time anomaly detection microservices using FastAPI and Docker to flag telemetry log drift, reducing manual root-cause investigation time by 40%.
+- Deployed unsupervised Vertex AI embedding models to automatically classify and tag unstructured event logs, making millions of logs semantically searchable.
+- Developed engagement forecasting models that identified high-churn segments, providing retention insights that directly informed Q3 content strategy.
+- Automated data quality checks via Dataform and GitHub Actions, reducing GCP compute costs by 30% and saving engineering teams ~2 hours per week in manual debugging.
 
-### Data Science Intern | Allo Communications
+### Data Scientist Intern | Allo Communications
 *Jan 2024 - Jan 2025 | Lincoln, NE*
-- Built an end-to-end fraud detection pipeline using XGBoost, achieving 94% precision in identifying fraudulent subscription patterns and protecting network revenue.
-- Designed and executed A/B tests for customer engagement initiatives, utilizing power analysis to determine sample sizes and validate statistical significance of business decisions.
-- Applied K-Means clustering and geospatial analysis to 1M+ network node logs, enabling the security team to reduce investigative cycles by 50% through targeted anomaly detection.
+- Built an end-to-end XGBoost classification model (AUC = 0.89) to isolate fraudulent account generation, serving inference via high-concurrency FastAPI to prevent service leakage.
+- Applied K-Means clustering and geospatial analysis to 1M+ network node logs, cutting security team discovery and investigative cycles by 50%.
+- Engineered dbt data lineage pipelines for multi-state infrastructure, ensuring audit-ready data trails and significantly reducing compliance preparation time.
 
-### Machine Learning Research Assistant | Nebraska Water Center
+### Machine Learning Intern | Nebraska Water Center
 *Feb 2023 - Jan 2024 | Lincoln, NE*
-- Trained multivariate LSTM architectures to forecast agricultural yield variations against historical climate trends, benchmarking performance against USDA ground-truth records.
-- Developed predictive data models and interactive visualizations for crop growth patterns, contributing to co-authored research papers on agricultural yield forecasting.
-- Consolidated 40+ years of fragmented environmental data into a centralized BigQuery warehouse, enabling large-scale historical trend analysis and feature engineering.
+- Consolidated 40+ years of fragmented environmental data into a centralized BigQuery warehouse via automated Python ingestion scripts, enabling large-scale historical analysis.
+- Trained LSTM models to predict corn yield using multivariate climate data, achieving 86% accuracy against ground-truth USDA records without relying on physical sensor hardware.
 
 ## PROJECTS
 
-### Agentic RAG Framework |
-- Built self-correcting search using LangGraph and Vertex AI. Enhanced retrieval relevance through hybrid BM25 and embedding search, effectively minimizing LLM hallucinations.
+### Agentic RAG Framework | Python, LangGraph, Vertex AI
+*2026*
+- Designed a self-correcting agentic search architecture using LangGraph to automate context extraction, reducing LLM hallucination rates by 40% compared to baseline RAG.
+- Implemented hybrid BM25 and dense embedding search, improving retrieval relevance scores by 25%.
 
-### Customer Segmentation & Retention |
-- Segmented user records into value tiers using K-Means clustering in Python and SQL. Identified high-risk churn segments to enable proactive retention strategies.
-
-### NLP Sentiment Analysis Engine |
-- Developed BERT pipeline to process large-scale reviews and map sentiment to revenue KPIs. Optimized PyTorch inference batching to significantly accelerate text processing.
+### NLP Sentiment Analysis Engine | Python, BERT, PyTorch
+*2026*
+- Developed BERT pipeline for 800K+ records to identify critic-audience sentiment gaps for marketing strategy.
+- Optimized GPU-accelerated inference batching, reducing large-scale text processing time by 60%.
 
 ## EDUCATION
 
@@ -51,5 +52,5 @@
 - B.S. Computer Science and Data Science; Minor in Mathematics
 
 ## HONORS AND ACTIVITIES
-- \textbf{RaikesHacks:} Led a 4-person team to build a real-time event sync engine using Python and Firebase.
-- \textbf{Dean's List:} Recognized for academic excellence at the University of Nebraska-Lincoln (2022--2026).
+- Team Lead, RaikesHacks: Led a team of 4 to build a real-time event sync engine using Python and Firebase
+- Dean's List: Recognized for academic excellence at the University of Nebraska-Lincoln (2022--2026)
