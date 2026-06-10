@@ -60,6 +60,10 @@ Before running the application, ensure you have a LaTeX distribution with `xelat
 - `make test` - Run automated tests.
 - `make clean` - Clean up output and build files.
 
+## Customizing the Template
+
+For step-by-step instructions on how to use an external LLM to update the LaTeX resume layout, formatting, or data fields, see the [LaTeX Template Customization Guide](.agents/10_update_latex_template.md).
+
 ## Notes
 - Cancellation is request-scoped via `run_id` (passed to `/stream` and `/api/cancel`).
 - Default resume compile can be triggered explicitly via `POST /api/compile-default`.
