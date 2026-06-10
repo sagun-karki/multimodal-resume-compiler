@@ -17,7 +17,7 @@ button:active { transform: scale(.98); }
 
 main { display: flex; height: 100vh; padding: 0; gap: 8px; }
 .left-panel,.right-panel { border: none; background: var(--panel); border-radius: 0; overflow: hidden; }
-.left-panel { width: 50%; display: flex; flex-direction: column; }
+.left-panel { width: 50%; display: flex; flex-direction: column; overflow-y: auto; }
 .right-panel { width: 50%; }
 
 .top-strip { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: none; background: var(--panel); }
@@ -31,8 +31,8 @@ main { display: flex; height: 100vh; padding: 0; gap: 8px; }
 .tab-btn { flex: 1; border: none; border-radius: 999px; padding: 9px 12px; background: var(--panel-2); color: var(--muted); font: 700 11px "Fira Code", monospace; }
 .tab-btn.active { background: #1d2430; color: var(--ink); }
 
-.editor-container { display: none; flex: 1; margin: 0 10px 10px; border: none; border-radius: 12px; overflow: hidden; }
-.editor-container.active { display: block; }
+.editor-container { display: none; flex: 1; min-height: 250px; margin: 0 10px 10px; border: none; border-radius: 12px; overflow: hidden; }
+.editor-container.active { display: flex; flex-direction: column; }
 textarea { width: 100%; height: 100%; border: none; outline: none; resize: none; padding: 14px; background: #0d1116; color: #d3dceb; font: 500 12px/1.6 "Fira Code", monospace; }
 
 .ats-panel { margin: 0 10px 10px; padding: 12px; border: none; border-radius: 12px; background: #0f1319; display: none; }
