@@ -2,7 +2,7 @@
 \section*{SKILLS}
 \begin{itemize}[leftmargin=0.7em, label={}, itemsep=0pt, parsep=0pt, topsep=0pt]
 {% for category, items in skills.items() %}
-  \validatedskill[skills.{{ category }}]{\textbf{ {{ category }}:} {{ items | join(', ') }} }
+  \validatedskill[{skills.{{ category }}}]{\textbf{ {{ category }}:} {{ items | join(', ') }} }
 {% endfor %}
 \end{itemize}
 {% endif %}
@@ -15,7 +15,7 @@
 \textit{ {{ job.company }} } \hfill \textit{ {{ job.location }} }
 \begin{itemize}
 {% for bullet in job.bullets %}
-  \validatedbullet[experience[{{ job_index }}].bullets[{{ loop.index0 }}]]{ {{ bullet }} }
+  \validatedbullet[{experience[{{ job_index }}].bullets[{{ loop.index0 }}]}]{ {{ bullet }} }
 {% endfor %}
 \end{itemize}
 {% if not loop.last %}
@@ -30,7 +30,7 @@
 \section*{PROJECTS}
 \begin{itemize}[leftmargin=0.7em, label={}, itemsep=2pt, parsep=0pt, topsep=2pt]
 {% for project in projects %}
-  \validatedbullet[projects[{{ loop.index0 }}].bullets[0]]{\textbf{ {{ project.name }} |}{% if project.bullets %} {{ project.bullets | join(' ') }}{% endif %} }
+  \validatedbullet[{projects[{{ loop.index0 }}].bullets[0]}]{\textbf{ {{ project.name }} |}{% if project.bullets %} {{ project.bullets | join(' ') }}{% endif %} }
 {% endfor %}
 \end{itemize}
 {% endif %}
@@ -47,7 +47,7 @@
 \section*{HONORS AND ACTIVITIES}
 \begin{itemize}[leftmargin=0.7em, label={}, itemsep=1pt, parsep=0pt, topsep=2pt]
 {% for honor in honors %}
-  \validatedbullet[honors[{{ loop.index0 }}]]{ {{ honor }} }
+  \validatedbullet[{honors[{{ loop.index0 }}]}]{ {{ honor }} }
 {% endfor %}
 \end{itemize}
 {% endif %}

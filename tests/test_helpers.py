@@ -39,7 +39,7 @@ def test_apply_atomic_edit():
 def test_extract_bullets_with_paths():
     from utils.helpers import extract_bullets_with_paths
     content = r"""
-    \validatedbullet[experience[0].bullets[0]]{Worked on a {nested} task.}
+    \validatedbullet[{experience[0].bullets[0]}]{Worked on a {nested} task.}
     \validatedbullet[projects[1].bullets[2]]{Built a project.}
     """
     pairs = extract_bullets_with_paths(content)

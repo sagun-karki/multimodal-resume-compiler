@@ -85,6 +85,8 @@ def extract_bullets_with_paths(latex_content: str) -> list[tuple[str, str]]:
                     brace_count -= 1
                 i += 1
             path_id = latex_content[start+1:i-1]
+            if path_id.startswith('{') and path_id.endswith('}'):
+                path_id = path_id[1:-1]
             start = i
             
         # Find opening curly brace
