@@ -1,7 +1,7 @@
 import os
 import json
 from utils.context import PipelineContext
-from utils.helpers import extract_bullets
+from utils.helpers import extract_bullets, extract_bullets_with_paths
 from agents.ats_analyzer import ATSAnalyzerAgent
 from agents.resume_writer import ResumeWriterAgent
 from agents.visual_auditor import VisualAuditorAgent
@@ -207,15 +207,17 @@ class CoordinatorAgent:
                 
                 if not accepted:
                     critique = vision_critique
-                    all_bullets = extract_bullets(latex_content)
+                    pairs = extract_bullets_with_paths(latex_content)
                     
                     if "EMPTY_BOTTOM" in vision_critique:
-                        all_bullets.sort(key=len)
-                        failing_bullets_to_optimize = all_bullets[:3]
+                        # Sort by bullet text length ascending (shortest first)
+                        pairs.sort(key=lambda p: len(p[1]))
+                        failing_bullets_to_optimize = [p[0] for p in pairs[:3] if p[0]]
                         direction = "lengthen"
                     else:
-                        all_bullets.sort(key=len, reverse=True)
-                        failing_bullets_to_optimize = all_bullets[:3]
+                        # Sort by bullet text length descending (longest first)
+                        pairs.sort(key=lambda p: len(p[1]), reverse=True)
+                        failing_bullets_to_optimize = [p[0] for p in pairs[:3] if p[0]]
                         direction = "shorten"
 
                     self.tracker.add_warning(f"Iteration {iteration}: Visual Auditor Critique - {vision_critique}")

@@ -7,23 +7,20 @@ from utils.context import PipelineContext
 class VisualAuditorAgent(BaseAgent):
     def __init__(self, tracker: PipelineContext):
         system_instruction = (
-            "You are an expert design QA inspector evaluating the layout balance of a compiled resume.\n"
-            "Analyze the provided image of the resume and evaluate its spacing, margins, and white space utilization.\n\n"
-            "EVALUATION CRITERIA:\n"
-            "1. PAGE BALANCE: Verify if the content fills the page grid elegantly. There should be uniform top/bottom margins.\n"
-            "2. EMPTY BOTTOM GAP (Underutilization): If there is a massive empty space at the bottom (more than 1.5 inches of "
-            "empty white background at the bottom of the page), return status EMPTY_BOTTOM and ask the system to expand descriptions "
-            "or add more relevant projects/details from the profile to balance the page.\n"
-            "3. OVERFLOW & CLIPPING: If the text is clipping, overlapping, or looks overly crowded and spills onto subsequent margins, "
-            "return status OVERFLOW and request text compression.\n"
-            "4. SKILLS SECTION CHECK: Look closely at the SKILLS block. Every skill category MUST perfectly fit on 1 single line. If any skill category wraps to a second line, return status OVERFLOW and explicitly request the text generator to remove the least relevant skill from that list.\n"
-            "5. BULLET POINT ORPHAN CHECK: Look closely at every bullet point. Bullet points MUST either fit entirely on 1 full line, or if they wrap to a second line, the second line MUST be at least half full (1.5+ lines total) but STRICTLY less than 2 full lines. If a bullet point leaves a single dangling word or just a few words on a new line (an orphan), return status OVERFLOW and instruct the system to shorten it.\n"
-            "6. ACCEPTED: If the spacing looks clean, professional, and visually balanced on exactly one page, and adheres to all the strict line-wrapping rules above, return status ACCEPTED.\n\n"
-            "You MUST respond starting with one of these exact headers:\n"
+            "You are an expert QA design inspector evaluating specialized cropped region-of-interest (ROI) frame segments of a typeset resume.\n\n"
+            "INPUT CONFIGURATIONS:\n"
+            "You will be provided with two targeted cropped image slices extracted from the rendered single-page layout document matrix:\n"
+            "1. [BOTTOM_MARGIN_ROI]: A focused cut-out slice capturing precisely the bottom 2.5 inches of the page area background workspace boundary.\n"
+            "2. [SKILLS_SECTION_ROI]: A focused close-up capture block bounding exclusively the SKILLS lists segments.\n\n"
+            "CRITICAL REASONING & AUDIT RULES:\n"
+            "- Analyze [BOTTOM_MARGIN_ROI] closely. Measure the ratio of white background pixels versus text ink density at the very bottom boundary. If there is a massive unutilized white patch trailing the final item block spanning deeper than 1.5 inches of blank whitespace, you MUST output status: EMPTY_BOTTOM.\n"
+            "- Analyze [SKILLS_SECTION_ROI] closely. Inspect the physical right-hand margin boundaries. If any row of technical credentials features text wrapping to a second indented line row, you MUST immediately pinpoint the violating category header and output status: OVERFLOW.\n\n"
+            "OUTPUT SPECIFICATIONS:\n"
+            "You must strictly format the evaluation output block starting with one of these exact tokens headers:\n"
             "- STATUS: ACCEPTED\n"
             "- STATUS: EMPTY_BOTTOM\n"
             "- STATUS: OVERFLOW\n\n"
-            "Followed by a detailed visual critique explaining your assessment."
+            "Followed by a detailed visual critique explaining your assessment of the cropped images."
         )
         super().__init__(
             name="Visual Auditor Agent",
@@ -37,15 +34,43 @@ class VisualAuditorAgent(BaseAgent):
             return False, "STATUS: FILE_ERROR\nCRITIQUE: PNG rasterized resume was not found."
 
         try:
-            pil_image = Image.open(png_image_path)
+            img = Image.open(png_image_path)
+            W, H = img.size
+            
+            # Crop 1: BOTTOM_MARGIN_ROI (capturing bottom 2.5 inches of typeset page; basic approximation via bottom 25% height)
+            bottom_crop_path = png_image_path.replace(".png", "_bottom_roi.png")
+            bottom_crop = img.crop((0, int(H * 0.75), W, H))
+            bottom_crop.save(bottom_crop_path)
+            
+            # Crop 2: SKILLS_SECTION_ROI (capturing top skills list segments close-up; approx. 12% to 45% height)
+            skills_crop_path = png_image_path.replace(".png", "_skills_roi.png")
+            skills_crop = img.crop((0, int(H * 0.12), W, int(H * 0.45)))
+            skills_crop.save(skills_crop_path)
+            
+            bottom_roi_img = Image.open(bottom_crop_path)
+            skills_roi_img = Image.open(skills_crop_path)
         except Exception as e:
-            return False, f"STATUS: FILE_ERROR\nCRITIQUE: Failed to open image: {str(e)}"
+            return False, f"STATUS: FILE_ERROR\nCRITIQUE: Failed to load cropped ROI images: {str(e)}"
+
+        prompt_message = (
+            "Analyze these two cropped ROI images from the Typeset Resume:\n"
+            "1. [BOTTOM_MARGIN_ROI] captures the bottom page space layout.\n"
+            "2. [SKILLS_SECTION_ROI] captures the technical skills block close-up."
+        )
 
         critique = self.generate_response(
-            [pil_image, "Perform the resume visual layout analysis."],
+            [bottom_roi_img, skills_roi_img, prompt_message],
             generation_config={"temperature": 0.0},
             model_type="vision"
         )
         
+        # Clean up ROI crop files to prevent disk clutter
+        for temp_path in (bottom_crop_path, skills_crop_path):
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except Exception:
+                    pass
+
         accepted = critique.startswith("STATUS: ACCEPTED")
         return accepted, critique

@@ -35,3 +35,16 @@ def test_apply_atomic_edit():
     })
     assert resume["skills"]["Languages"][0] == "Python3"
 
+
+def test_extract_bullets_with_paths():
+    from utils.helpers import extract_bullets_with_paths
+    content = r"""
+    \validatedbullet[experience[0].bullets[0]]{Worked on a {nested} task.}
+    \validatedbullet[projects[1].bullets[2]]{Built a project.}
+    """
+    pairs = extract_bullets_with_paths(content)
+    assert len(pairs) == 2
+    assert pairs[0] == ("experience[0].bullets[0]", "Worked on a {nested} task.")
+    assert pairs[1] == ("projects[1].bullets[2]", "Built a project.")
+
+

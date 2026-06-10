@@ -64,6 +64,49 @@ def extract_bullets(latex_content: str) -> list[str]:
     return bullets
 
 
+def extract_bullets_with_paths(latex_content: str) -> list[tuple[str, str]]:
+    """
+    Parses out the exact (path_id, content) tuple inside all \\validatedbullet[path_id]{content} macros.
+    Handles nested curly braces up to arbitrary depths.
+    """
+    pairs = []
+    pattern = r'\\validatedbullet'
+    for match in re.finditer(pattern, latex_content):
+        start = match.end()
+        path_id = ""
+        # Find optional path parameter in brackets
+        if start < len(latex_content) and latex_content[start] == '[':
+            brace_count = 1
+            i = start + 1
+            while i < len(latex_content) and brace_count > 0:
+                if latex_content[i] == '[':
+                    brace_count += 1
+                elif latex_content[i] == ']':
+                    brace_count -= 1
+                i += 1
+            path_id = latex_content[start+1:i-1]
+            start = i
+            
+        # Find opening curly brace
+        while start < len(latex_content) and latex_content[start] != '{':
+            start += 1
+        if start < len(latex_content):
+            start += 1
+            
+        brace_count = 1
+        i = start
+        while i < len(latex_content) and brace_count > 0:
+            if latex_content[i] == '{':
+                brace_count += 1
+            elif latex_content[i] == '}':
+                brace_count -= 1
+            i += 1
+        if brace_count == 0:
+            bullet_text = latex_content[start:i-1]
+            pairs.append((path_id, bullet_text))
+    return pairs
+
+
 def clean_generated_tex(content: str) -> str:
     """Replace all \\validatedbullet{...} with \\item ..."""
     result = []

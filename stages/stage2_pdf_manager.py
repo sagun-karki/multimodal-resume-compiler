@@ -207,10 +207,10 @@ def run_stage2(main_tex_path: str, output_dir: str) -> tuple[bool, str, list[str
                     f"violating the strict single-page (1 page) layout constraint. The text generator must reduce "
                     f"content length or bullet descriptions to fit the single-page layout."
                 )
-                from utils.helpers import extract_bullets
-                all_bullets = extract_bullets(main_content)
-                all_bullets.sort(key=len, reverse=True)
-                return False, critique, all_bullets[:3]
+                from utils.helpers import extract_bullets_with_paths
+                pairs = extract_bullets_with_paths(main_content)
+                pairs.sort(key=lambda p: len(p[1]), reverse=True)
+                return False, critique, [p[0] for p in pairs[:3] if p[0]]
                 
         except Exception as e:
             return False, f"STATUS: RASTERIZE_ERROR\nCRITIQUE: Failed to rasterize compiled PDF: {str(e)}", []
